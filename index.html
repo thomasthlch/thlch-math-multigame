@@ -1,0 +1,1959 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>乘法戰機大比拼｜三年級數學</title>
+<style>
+  :root {
+    --bg: #070b16;
+    --card: #142038;
+    --card2: #1a2a4a;
+    --line: #2d4570;
+    --text: #f3f7ff;
+    --muted: #9db0d4;
+    --accent: #4fd1ff;
+    --accent2: #7c5cff;
+    --ok: #3ddc97;
+    --bad: #ff6b7a;
+    --warn: #ffd166;
+    --lane1: #4fd1ff;
+    --lane2: #a78bfa;
+    --lane3: #34d399;
+    --shadow: 0 12px 40px rgba(0,0,0,.5);
+    --radius: 16px;
+    --font: "Noto Sans TC", "PingFang HK", "Microsoft JhengHei", "Heiti TC", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background:
+      radial-gradient(1000px 500px at 15% -5%, #1a2a55 0%, transparent 55%),
+      radial-gradient(800px 420px at 95% 5%, #2a1650 0%, transparent 50%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    overflow-x: hidden;
+    touch-action: manipulation;
+  }
+  body.game-on {
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,.5), transparent),
+      radial-gradient(1.5px 1.5px at 80px 120px, rgba(255,255,255,.35), transparent),
+      radial-gradient(1px 1px at 160px 80px, rgba(255,255,255,.3), transparent),
+      radial-gradient(1.5px 1.5px at 240px 200px, rgba(255,255,255,.4), transparent),
+      radial-gradient(1px 1px at 400px 160px, rgba(255,255,255,.35), transparent),
+      radial-gradient(1.5px 1.5px at 580px 220px, rgba(255,255,255,.45), transparent);
+    background-size: 640px 260px;
+    opacity: .45;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 10px 10px 20px;
+    min-height: 100%;
+  }
+  .wrap.game-fill {
+    max-width: none;
+    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    padding: 6px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+
+  .screen { display: none; animation: fadeIn .25s ease; }
+  .screen.active { display: block; }
+  #screen-game.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    position: relative;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  h1 {
+    font-size: clamp(1.5rem, 3.5vw, 2.1rem);
+    letter-spacing: .04em;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: .95rem;
+    margin-bottom: 18px;
+  }
+  .emoji-title { font-size: 2.2rem; text-align: center; margin-bottom: 2px; }
+
+  .card {
+    background: linear-gradient(180deg, var(--card), var(--card2));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  label {
+    display: block;
+    font-size: .9rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+
+  input[type="text"], select {
+    width: 100%;
+    background: #0b1328;
+    border: 2px solid var(--line);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 11px 12px;
+    font-size: 1.05rem;
+    font-family: inherit;
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+
+  .settings-grid { display: grid; gap: 14px; }
+  .field { margin-bottom: 2px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > * { flex: 1; min-width: 140px; }
+
+  .player-names {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 600px) {
+    .player-names { grid-template-columns: 1fr; }
+  }
+
+  .seg { display: flex; gap: 8px; flex-wrap: wrap; }
+  .seg button {
+    flex: 1;
+    min-width: 70px;
+    background: #0b1328;
+    color: var(--muted);
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    padding: 11px 8px;
+    font-weight: 800;
+    font-size: .95rem;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .seg button.active {
+    background: linear-gradient(135deg, rgba(79,209,255,.22), rgba(124,92,255,.28));
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .btn {
+    appearance: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 800;
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-size: 1.1rem;
+    transition: transform .1s, filter .12s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .btn:active { transform: scale(.97); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #081018;
+    box-shadow: 0 8px 24px rgba(79,209,255,.28);
+    width: 100%;
+    margin-top: 16px;
+    font-size: 1.25rem;
+    padding: 16px;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 2px solid var(--line);
+    padding: 8px 14px;
+    font-size: .9rem;
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+
+  .tip {
+    color: var(--muted);
+    font-size: .86rem;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  /* ===== GAME ===== */
+  .game-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  .pill {
+    background: #0b1328;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-weight: 700;
+    font-size: .88rem;
+    color: var(--muted);
+  }
+  .pill strong { color: var(--text); }
+
+  .lanes {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    align-items: stretch;
+  }
+
+  .lane {
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #101a32, #0c1428);
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    position: relative;
+  }
+  .lane[data-lane="0"] {
+    border-color: rgba(79,209,255,.65);
+    background: linear-gradient(180deg, #0f2238 0%, #0a1528 100%);
+    box-shadow: inset 0 0 0 1px rgba(79,209,255,.12);
+  }
+  .lane[data-lane="1"] {
+    border-color: rgba(167,139,250,.65);
+    background: linear-gradient(180deg, #1a1638 0%, #100e28 100%);
+    box-shadow: inset 0 0 0 1px rgba(167,139,250,.12);
+  }
+  .lane[data-lane="2"] {
+    border-color: rgba(52,211,153,.65);
+    background: linear-gradient(180deg, #0f2a24 0%, #0a1a18 100%);
+    box-shadow: inset 0 0 0 1px rgba(52,211,153,.12);
+  }
+  .lane.flash-ok { box-shadow: inset 0 0 0 3px var(--ok); }
+  .lane.flash-bad { box-shadow: inset 0 0 0 2px rgba(255,209,102,.45); }
+
+  @keyframes laneShake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  .lane-hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    background: rgba(0,0,0,.4);
+    border-bottom: 1px solid var(--line);
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .lane-name {
+    font-weight: 900;
+    font-size: clamp(.85rem, 1.8vw, 1.05rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lane[data-lane="0"] .lane-name { color: var(--lane1); }
+  .lane[data-lane="1"] .lane-name { color: var(--lane2); }
+  .lane[data-lane="2"] .lane-name { color: var(--lane3); }
+
+  .lane-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .85rem;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .lane-score { color: var(--warn); }
+  .lane-hits { color: var(--muted); font-size: .75rem; font-weight: 700; }
+
+  .lane-canvas-wrap {
+    position: relative;
+    width: 100%;
+    flex: 1 1 0%;
+    min-height: 0;
+    align-self: stretch;
+    background:
+      linear-gradient(180deg, #070d1a 0%, #0c1830 55%, #101f3a 100%);
+  }
+  /* Absolute fill stops default 300×150 canvas sitting in the corner */
+  .lane-canvas-wrap canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    touch-action: none;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  .lane-q {
+    padding: 4px 6px 2px;
+    text-align: center;
+    border-top: 1px solid var(--line);
+    background: rgba(0,0,0,.35);
+    flex-shrink: 0;
+  }
+  .lane-q .q-text {
+    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+    font-weight: 900;
+    letter-spacing: .04em;
+    line-height: 1.1;
+  }
+  .float-msg-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 9;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .float-msg {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    transform: translate(-50%, -50%);
+    font-weight: 900;
+    font-size: clamp(.95rem, 2.2vw, 1.35rem);
+    text-align: center;
+    white-space: nowrap;
+    max-width: 92%;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(8, 14, 28, .72);
+    border: 2px solid rgba(255,255,255,.25);
+    text-shadow: 0 2px 8px rgba(0,0,0,.65);
+    animation: floatMsgPop 1.05s ease forwards;
+    pointer-events: none;
+  }
+  .float-msg.ok {
+    color: #3ddc97;
+    border-color: rgba(61,220,151,.55);
+  }
+  .float-msg.soft {
+    color: #ddd6fe;
+    border-color: rgba(167,139,250,.5);
+  }
+  .float-msg.warn {
+    color: #ffd166;
+    border-color: rgba(255,209,102,.5);
+  }
+  @keyframes floatMsgPop {
+    0% { opacity: 0; transform: translate(-50%, -40%) scale(.85); }
+    18% { opacity: 1; transform: translate(-50%, -55%) scale(1.05); }
+    55% { opacity: 1; transform: translate(-50%, -70%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -95%) scale(.95); }
+  }
+
+  .lane-answers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    padding: 4px 6px 6px;
+    flex-shrink: 0;
+  }
+  @media (min-width: 1400px) {
+    .lane-answers { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .ans-btn {
+    background: #0b1328;
+    border: 3px solid var(--line);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px 4px;
+    font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+    font-weight: 900;
+    font-family: inherit;
+    cursor: pointer;
+    min-height: 48px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .08s, border-color .12s, background .12s;
+  }
+  .ans-btn:active:not(:disabled) { transform: scale(.96); }
+  .ans-btn:disabled { opacity: .7; cursor: default; }
+  .ans-btn.correct {
+    background: rgba(61,220,151,.22);
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+  .ans-btn.wrong {
+    background: rgba(167,139,250,.12);
+    border-color: rgba(167,139,250,.55);
+    color: #ddd6fe;
+  }
+
+  /* Result */
+  .podium { display: flex; flex-direction: column; gap: 10px; margin: 14px 0; }
+  .podium-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #0b1328;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .podium-item.gold {
+    border-color: var(--warn);
+    background: linear-gradient(90deg, rgba(255,209,102,.12), transparent);
+  }
+  .rank { font-size: 1.5rem; width: 40px; text-align: center; }
+  .podium-item .pname { flex: 1; font-size: 1.15rem; font-weight: 800; }
+  .podium-item .pscore { font-size: 1.35rem; font-weight: 900; color: var(--accent); }
+
+  .confetti {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    overflow: hidden;
+  }
+  .confetti i {
+    position: absolute;
+    width: 10px;
+    height: 16px;
+    top: -20px;
+    border-radius: 2px;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: .7; }
+  }
+
+  .overlay-msg {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5,10,20,.78);
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
+    font-weight: 900;
+    z-index: 20;
+    text-align: center;
+    padding: 16px;
+    pointer-events: none;
+    border-radius: 12px;
+  }
+  .overlay-msg.hidden { display: none; }
+
+  .lane-combo {
+    font-size: .78rem;
+    font-weight: 900;
+    color: #ffd166;
+    min-width: 3.2em;
+    text-align: right;
+  }
+  .lane-combo.hot { color: #ff9f43; text-shadow: 0 0 8px rgba(255,159,67,.6); }
+  .lane-combo.super { color: #ff6b7a; animation: comboPulse .6s ease infinite alternate; }
+  @keyframes comboPulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.08); }
+  }
+
+  /* Overlay on playfield — never changes canvas wrap flex height */
+  .power-slot {
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+    transform: translateX(-50%);
+    z-index: 8;
+    display: flex;
+    gap: 6px;
+    padding: 0;
+    margin: 0;
+    min-height: 0;
+    height: auto;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    pointer-events: none;
+    max-width: calc(100% - 12px);
+  }
+  .power-slot:empty { display: none; }
+  .power-slot .power-btn { pointer-events: auto; }
+  .power-btn {
+    appearance: none;
+    border: 2px solid #ffd166;
+    background: linear-gradient(135deg, rgba(255,209,102,.25), rgba(124,92,255,.3));
+    color: #fff;
+    border-radius: 12px;
+    padding: 6px 10px;
+    font-family: inherit;
+    font-weight: 900;
+    font-size: .82rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    animation: powerPop .45s ease, powerGlow 1.2s ease infinite alternate;
+    box-shadow: 0 0 12px rgba(255,209,102,.35);
+  }
+  .power-btn:active { transform: scale(.95); }
+  @keyframes powerPop {
+    from { transform: scale(.6); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  @keyframes powerGlow {
+    from { box-shadow: 0 0 8px rgba(255,209,102,.25); }
+    to { box-shadow: 0 0 16px rgba(255,209,102,.55); }
+  }
+  .buff-pills {
+    position: absolute;
+    left: 50%;
+    top: 6px;
+    transform: translateX(-50%);
+    z-index: 7;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+    pointer-events: none;
+    max-width: calc(100% - 12px);
+  }
+  .buff-pills:empty { display: none; }
+  .buff-pill {
+    font-size: .7rem;
+    font-weight: 800;
+    background: #0b1328;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 2px 8px;
+    color: var(--muted);
+  }
+  .buff-pill.on { color: #ffd166; border-color: #ffd166; }
+
+  .float-transform {
+    position: absolute;
+    left: 50%;
+    top: 28%;
+    transform: translate(-50%, -50%);
+    font-size: clamp(1.1rem, 3vw, 1.5rem);
+    font-weight: 900;
+    color: #ffd166;
+    text-shadow: 0 0 12px rgba(255,209,102,.8), 0 2px 8px #000;
+    pointer-events: none;
+    z-index: 6;
+    opacity: 0;
+  }
+  .float-transform.show {
+    animation: transformPop 1s ease forwards;
+  }
+  @keyframes transformPop {
+    0% { opacity: 0; transform: translate(-50%, -40%) scale(.5); }
+    25% { opacity: 1; transform: translate(-50%, -55%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -80%) scale(1); }
+  }
+
+
+  @media (max-width: 720px) {
+    .lanes { grid-template-columns: 1fr; }
+    .wrap.game-fill { height: auto; max-height: none; overflow: auto; }
+    body.game-on { overflow: auto; height: auto; }
+    .lane { min-height: 70vh; }
+    .lane-canvas-wrap { flex: 1 1 auto; min-height: 220px; }
+    .player-names { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- START -->
+  <section id="screen-start" class="screen active">
+    <div class="emoji-title">🚀✖️👾</div>
+    <h1>乘法戰機大比拼</h1>
+    <p class="subtitle">計時賽 · 三欄同時玩 · 答得快答得多就贏</p>
+
+    <div class="card">
+      <div class="settings-grid">
+        <div class="field">
+          <label>三欄玩家名稱（電子白板可三人同時撳）</label>
+          <div class="player-names" id="name-inputs"></div>
+        </div>
+
+        <div class="field">
+          <label>難度（影響敵人下落速度）</label>
+          <div class="seg" id="difficulty-seg">
+            <button type="button" data-d="easy">簡單<br><small style="font-weight:600;opacity:.8">1–5 · 慢</small></button>
+            <button type="button" data-d="normal" class="active">普通<br><small style="font-weight:600;opacity:.8">1–9</small></button>
+            <button type="button" data-d="challenge">挑戰<br><small style="font-weight:600;opacity:.8">含0 · 快</small></button>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>比賽時間（計時賽 · 大家一齊玩到完）</label>
+            <select id="race-time">
+              <option value="60">60 秒</option>
+              <option value="90" selected>90 秒</option>
+              <option value="120">120 秒</option>
+              <option value="150">150 秒</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>計分重點</label>
+            <div class="pill" style="display:block;padding:12px 14px;line-height:1.45;">
+              答對得分 · 越快越高 · 連擊加成 · 全程唔會出局
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-start">🚀 開始遊戲</button>
+      <p class="tip">玩法：敵人由上往下跌。答啱 → 瞄準開火得分（快答＋連擊有加成）。答錯只係溫柔提點、斷連擊，繼續玩。敵人逃走只扣少少分／斷連擊，唔會出局。倒數完一齊睇排行榜！</p>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="screen-game" class="screen">
+    <div class="game-top">
+      <span class="pill">計時賽 · 剩餘 <strong id="timer-label">90</strong> 秒 · 睇邊個分數最高！</span>
+      <button class="btn btn-ghost" id="btn-quit" type="button">結束</button>
+    </div>
+
+    <div class="lanes" id="lanes">
+      <!-- filled by JS: 3 lanes -->
+    </div>
+
+    <div class="overlay-msg hidden" id="countdown-overlay">3</div>
+  </section>
+
+  <!-- RESULT -->
+  <section id="screen-result" class="screen">
+    <div class="emoji-title">🏆</div>
+    <h1>比賽完結！</h1>
+    <p class="subtitle" id="result-sub">睇吓邊個分數最高！</p>
+    <div class="card">
+      <div class="podium" id="podium"></div>
+      <button class="btn btn-primary" id="btn-again">再玩一次</button>
+      <button class="btn btn-ghost" id="btn-home" style="width:100%;margin-top:10px;">返回設定</button>
+    </div>
+  </section>
+</div>
+
+<div class="confetti" id="confetti" aria-hidden="true"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  const DEFAULT_NAMES = ['藍隊', '紫隊', '綠隊'];
+  const LANE_COLORS = ['#4fd1ff', '#a78bfa', '#34d399'];
+  const COMBO_TIERS = [
+    { need: 0, name: '', scale: 1, speed: 900, width: 3, pierce: 1, multi: 1, blast: 0, jetColor: null },
+    { need: 3, name: '火焰型', scale: 1.1, speed: 1150, width: 5, pierce: 1, multi: 1, blast: 0, jetColor: '#ff9f43' },
+    { need: 5, name: '穿甲型', scale: 1.2, speed: 1300, width: 6, pierce: 2, multi: 1, blast: 0, jetColor: '#a78bfa' },
+    { need: 8, name: '究極型', scale: 1.3, speed: 1500, width: 8, pierce: 2, multi: 3, blast: 36, jetColor: '#ff6b7a' }
+  ];
+  const POWER_DEFS = [
+    { id: 'double', icon: '⚡', name: '雙激光', duration: 8 },
+    { id: 'slow', icon: '🐢', name: '慢動作', duration: 6 },
+    { id: 'bomb', icon: '💣', name: '清場炸彈', duration: 0 },
+    { id: 'shield', icon: '🛡️', name: '護盾', duration: 0 }
+  ];
+  const ENEMY_TYPES = [
+    { emoji: '👾', color: '#ff6b9d' },
+    { emoji: '🛸', color: '#7dd3fc' },
+    { emoji: '☄️', color: '#fdba74' },
+    { emoji: '🎃', color: '#fb923c' },
+    { emoji: '🤖', color: '#a3e635' },
+    { emoji: '🦇', color: '#c4b5fd' },
+    { emoji: '🐉', color: '#f472b6' },
+    { emoji: '😈', color: '#f87171' }
+  ];
+  // Smart Board (75–86"): size sprites as % of canvas height so they stay tiny when projected
+  const ENEMY_R_FRAC = 0.025;  // enemy radius ≈ 2.5% of lane canvas height
+  const JET_H_FRAC = 0.05;     // jet visual height ≈ 5% of canvas height
+  const JET_DRAW_H = 32;       // approx unscaled jet path height
+
+  const state = {
+    names: [...DEFAULT_NAMES],
+    difficulty: 'normal',
+    timeLimit: 90,
+    lanes: [],
+    running: false,
+    ended: false,
+    timeLeft: 90,
+    raf: 0,
+    lastTs: 0,
+    timerAcc: 0
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const screens = {
+    start: $('screen-start'),
+    game: $('screen-game'),
+    result: $('screen-result')
+  };
+
+  function showScreen(name) {
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+    const wrap = document.querySelector('.wrap');
+    const playing = name === 'game';
+    document.body.classList.toggle('game-on', playing);
+    if (wrap) wrap.classList.toggle('game-fill', playing);
+    if (playing) {
+      requestAnimationFrame(() => {
+        onResize();
+        requestAnimationFrame(onResize);
+      });
+    }
+  }
+
+  function renderNameInputs() {
+    const box = $('name-inputs');
+    box.innerHTML = '';
+    for (let i = 0; i < 3; i++) {
+      const wrap = document.createElement('div');
+      const lab = document.createElement('label');
+      lab.textContent = `第 ${i + 1} 欄`;
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.maxLength = 8;
+      inp.value = state.names[i] || DEFAULT_NAMES[i];
+      inp.addEventListener('input', (e) => {
+        state.names[i] = e.target.value.trim() || DEFAULT_NAMES[i];
+      });
+      wrap.appendChild(lab);
+      wrap.appendChild(inp);
+      box.appendChild(wrap);
+    }
+  }
+
+  document.querySelectorAll('#difficulty-seg button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#difficulty-seg button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.difficulty = btn.dataset.d;
+    });
+  });
+
+  renderNameInputs();
+
+  $('btn-start').addEventListener('click', startGame);
+  $('btn-again').addEventListener('click', startGame);
+  $('btn-home').addEventListener('click', () => {
+    stopLoop();
+    showScreen('start');
+  });
+  $('btn-quit').addEventListener('click', () => {
+    if (state.running || state.lanes.some(l => l.score > 0)) endGame('手動結束');
+    else { stopLoop(); showScreen('start'); }
+  });
+
+  function difficultyParams() {
+    if (state.difficulty === 'easy') {
+      return { min: 1, max: 5, includeZero: false, fallSpeed: 30, spawnGap: 1.9, maxEnemies: 2 };
+    }
+    if (state.difficulty === 'challenge') {
+      return { min: 1, max: 9, includeZero: true, fallSpeed: 52, spawnGap: 1.35, maxEnemies: 2 };
+    }
+    return { min: 1, max: 9, includeZero: false, fallSpeed: 40, spawnGap: 1.6, maxEnemies: 2 };
+  }
+
+  function timeForDifficulty() {
+    if (state.difficulty === 'easy') return 100;
+    if (state.difficulty === 'challenge') return 75;
+    return 90;
+  }
+
+  function randInt(a, b) {
+    return Math.floor(Math.random() * (b - a + 1)) + a;
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function pickFactor(p) {
+    if (p.includeZero && Math.random() < 0.15) return 0;
+    return randInt(p.min, p.max);
+  }
+
+  function makeQuestion() {
+    const p = difficultyParams();
+    let a = pickFactor(p);
+    let b = pickFactor(p);
+    if (Math.random() < 0.5) [a, b] = [b, a];
+    const answer = a * b;
+    return { a, b, answer, choices: makeChoices(a, b, answer) };
+  }
+
+  function makeChoices(a, b, answer) {
+    const set = new Set([answer]);
+    const candidates = [
+      answer + 1, answer - 1, answer + 2, answer - 2,
+      answer + a, answer - a, answer + b, answer - b,
+      (a + 1) * b, Math.max(0, a - 1) * b,
+      a * (b + 1), a * Math.max(0, b - 1),
+      a + b, Math.abs(a - b)
+    ];
+    shuffle(candidates);
+    for (const c of candidates) {
+      if (Number.isInteger(c) && c >= 0 && c <= 100 && !set.has(c)) set.add(c);
+      if (set.size >= 4) break;
+    }
+    let n = 1;
+    while (set.size < 4) {
+      if (answer + n <= 100) set.add(answer + n);
+      if (set.size >= 4) break;
+      if (answer - n >= 0) set.add(answer - n);
+      n++;
+    }
+    return shuffle([...set].slice(0, 4));
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function comboTierIndex(combo) {
+    let t = 0;
+    for (let i = 0; i < COMBO_TIERS.length; i++) {
+      if (combo >= COMBO_TIERS[i].need) t = i;
+    }
+    return t;
+  }
+
+  function getTier(lane) {
+    return COMBO_TIERS[lane.tier];
+  }
+
+  function startGame() {
+    const inputs = $('name-inputs').querySelectorAll('input');
+    inputs.forEach((inp, i) => {
+      state.names[i] = inp.value.trim() || DEFAULT_NAMES[i];
+    });
+    state.timeLimit = Number($('race-time').value) || timeForDifficulty();
+    state.timeLeft = state.timeLimit;
+    state.ended = false;
+    state.running = false;
+    state.timerAcc = 0;
+
+    $('timer-label').textContent = String(Math.ceil(state.timeLeft));
+
+    // Apply full-viewport game layout BEFORE measuring canvases
+    showScreen('game');
+    buildLanes();
+    runCountdown(() => {
+      state.running = true;
+      state.lastTs = performance.now();
+      state.raf = requestAnimationFrame(loop);
+    });
+  }
+
+  function runCountdown(done) {
+    const ov = $('countdown-overlay');
+    ov.classList.remove('hidden');
+    let n = 3;
+    ov.textContent = String(n);
+    const tick = () => {
+      n -= 1;
+      if (n > 0) {
+        ov.textContent = String(n);
+        setTimeout(tick, 700);
+      } else {
+        ov.textContent = '開始！';
+        setTimeout(() => {
+          ov.classList.add('hidden');
+          done();
+        }, 450);
+      }
+    };
+    setTimeout(tick, 700);
+  }
+
+  function buildLanes() {
+    const host = $('lanes');
+    host.innerHTML = '';
+    stopLoop();
+    state.lanes = [];
+
+    for (let i = 0; i < 3; i++) {
+      const laneEl = document.createElement('div');
+      laneEl.className = 'lane';
+      laneEl.dataset.lane = String(i);
+
+      laneEl.innerHTML = `
+        <div class="lane-hud">
+          <div class="lane-name">${escapeHtml(state.names[i])}</div>
+          <div class="lane-stats">
+            <span class="lane-combo" data-combo>連擊0</span>
+            <span class="lane-score"><span class="score-num">0</span> 分</span>
+            <span class="lane-hits">答對 <span class="hits-num">0</span></span>
+          </div>
+        </div>
+        <div class="lane-canvas-wrap">
+          <canvas></canvas>
+          <div class="float-msg-layer" data-floats></div>
+          <div class="float-transform" data-transform>變身！</div>
+          <div class="buff-pills" data-buffs></div>
+          <div class="power-slot" data-powers></div>
+        </div>
+        <div class="lane-q">
+          <div class="q-text">? × ?</div>
+        </div>
+        <div class="lane-answers"></div>
+      `;
+      host.appendChild(laneEl);
+
+      const canvas = laneEl.querySelector('canvas');
+      const wrap = laneEl.querySelector('.lane-canvas-wrap');
+      const ctx = canvas.getContext('2d');
+
+      const lane = {
+        index: i,
+        name: state.names[i],
+        color: LANE_COLORS[i],
+        el: laneEl,
+        canvas,
+        ctx,
+        wrap,
+        score: 0,
+        hits: 0,
+        qShownAt: 0,
+        enemies: [],
+        lasers: [],
+        particles: [],
+        blasts: [],
+        spawnTimer: 0.3 + i * 0.25,
+        lockUntil: 0,
+        question: null,
+        stars: [],
+        jetBob: 0,
+        jetAngle: 0,
+        jetHomeX: 0,
+        aim: null,
+        combo: 0,
+        maxCombo: 0,
+        tier: 0,
+        powerTimer: 4 + i * 2.5,
+        pendingPower: null,
+        buffDouble: 0,
+        buffSlow: 0,
+        shield: 0,
+        transformFlash: 0
+      };
+
+      resizeLaneCanvas(lane);
+      initStars(lane);
+      newQuestion(lane);
+      updateScoreUI(lane);
+      updateComboUI(lane);
+      updateBuffUI(lane);
+      state.lanes.push(lane);
+    }
+
+    window.addEventListener('resize', onResize);
+    if (state._ro) {
+      try { state._ro.disconnect(); } catch (e) {}
+    }
+    if (typeof ResizeObserver !== 'undefined') {
+      state._ro = new ResizeObserver(() => {
+        state.lanes.forEach(lane => resizeLaneCanvas(lane));
+      });
+      state.lanes.forEach(lane => state._ro.observe(lane.wrap));
+    }
+    // Layout may settle after flex paint — resize twice
+    onResize();
+    requestAnimationFrame(() => {
+      onResize();
+      requestAnimationFrame(onResize);
+    });
+  }
+
+  function onResize() {
+    state.lanes.forEach(lane => {
+      const prevW = lane.w;
+      const prevH = lane.h;
+      resizeLaneCanvas(lane);
+      if (lane.w !== prevW || lane.h !== prevH) initStars(lane);
+    });
+  }
+
+  function resizeLaneCanvas(lane) {
+    if (!lane.wrap || !lane.canvas) return;
+    // Prefer client box of flex-grown wrap (fills lane between HUD and question)
+    let w = Math.round(lane.wrap.clientWidth);
+    let h = Math.round(lane.wrap.clientHeight);
+    if (w < 40 || h < 40) {
+      const rect = lane.wrap.getBoundingClientRect();
+      w = Math.round(rect.width);
+      h = Math.round(rect.height);
+    }
+    if (w < 40 || h < 40) return; // layout not ready yet
+    const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
+    // Avoid no-op thrashing
+    if (lane.w === w && lane.h === h && lane._dpr === dpr) {
+      return;
+    }
+    lane.w = w;
+    lane.h = h;
+    lane._dpr = dpr;
+    // Do NOT set canvas.style width/height in px — CSS absolute 100% fills wrap
+    lane.canvas.style.width = '100%';
+    lane.canvas.style.height = '100%';
+    lane.canvas.width = Math.max(1, Math.round(w * dpr));
+    lane.canvas.height = Math.max(1, Math.round(h * dpr));
+    const ctx = lane.ctx;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+    lane.enemyR = Math.max(3, h * ENEMY_R_FRAC);
+    lane.jetBaseScale = (h * JET_H_FRAC) / JET_DRAW_H;
+    lane.jetPad = Math.max(12, h * 0.035);
+    lane.jetY = h - lane.jetPad;
+    lane.jetHomeX = w / 2;
+    if (lane.aim == null) lane.jetX = lane.jetHomeX;
+    for (const e of lane.enemies) e.r = lane.enemyR;
+  }
+
+  function initStars(lane) {
+    lane.stars = [];
+    for (let i = 0; i < 18; i++) {
+      lane.stars.push({
+        x: Math.random() * (lane.w || 200),
+        y: Math.random() * (lane.h || 300),
+        r: Math.random() * 1.4 + 0.4,
+        s: Math.random() * 18 + 10
+      });
+    }
+  }
+
+  function updateScoreUI(lane) {
+    lane.el.querySelector('.score-num').textContent = String(lane.score);
+    const hits = lane.el.querySelector('.hits-num');
+    if (hits) hits.textContent = String(lane.hits || 0);
+  }
+
+  function awardCorrect(lane) {
+    const now = performance.now();
+    const elapsed = lane.qShownAt ? (now - lane.qShownAt) / 1000 : 2;
+    // Base 100 + speed bonus (up to +80 if under ~0.8s) + combo bonus
+    const speedBonus = Math.max(0, Math.round(80 * (1 - Math.min(elapsed, 2.5) / 2.5)));
+    const comboBonus = Math.min(120, lane.combo * 12);
+    const gain = 100 + speedBonus + comboBonus;
+    lane.score += gain;
+    lane.hits += 1;
+    updateScoreUI(lane);
+    return { gain, speedBonus, comboBonus };
+  }
+
+  function updateComboUI(lane) {
+    const el = lane.el.querySelector('[data-combo]');
+    el.textContent = lane.combo > 0 ? `連擊${lane.combo}` : '連擊0';
+    el.classList.remove('hot', 'super');
+    if (lane.tier >= 3) el.classList.add('super');
+    else if (lane.tier >= 1) el.classList.add('hot');
+  }
+
+  function updateBuffUI(lane) {
+    const box = lane.el.querySelector('[data-buffs]');
+    const bits = [];
+    if (lane.buffDouble > 0) bits.push(`<span class="buff-pill on">⚡雙激光 ${Math.ceil(lane.buffDouble)}s</span>`);
+    if (lane.buffSlow > 0) bits.push(`<span class="buff-pill on">🐢慢動作 ${Math.ceil(lane.buffSlow)}s</span>`);
+    if (lane.shield > 0) bits.push(`<span class="buff-pill on">🛡️護盾×${lane.shield}</span>`);
+    if (lane.tier >= 1) bits.push(`<span class="buff-pill on">🚀${getTier(lane).name}</span>`);
+    box.innerHTML = bits.join('');
+  }
+
+  function showTransform(lane, label) {
+    const el = lane.el.querySelector('[data-transform]');
+    el.textContent = label || '變身！';
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+    lane.transformFlash = 1;
+  }
+
+  function resetCombo(lane) {
+    const prev = lane.tier;
+    lane.combo = 0;
+    lane.tier = 0;
+    updateComboUI(lane);
+    if (prev > 0) updateBuffUI(lane);
+  }
+
+  function bumpCombo(lane) {
+    const prevTier = lane.tier;
+    lane.combo += 1;
+    if (lane.combo > lane.maxCombo) lane.maxCombo = lane.combo;
+    lane.tier = comboTierIndex(lane.combo);
+    updateComboUI(lane);
+    if (lane.tier > prevTier) {
+      const t = getTier(lane);
+      showTransform(lane, `變身！${t.name}`);
+      updateBuffUI(lane);
+    }
+  }
+
+  function showFloatMsg(lane, text, kind) {
+    const layer = lane.el.querySelector('[data-floats]');
+    if (!layer || !text) return;
+    const el = document.createElement('div');
+    el.className = 'float-msg ' + (kind || 'ok');
+    el.textContent = text;
+    layer.appendChild(el);
+    setTimeout(() => { try { el.remove(); } catch (e) {} }, 1100);
+  }
+
+  function newQuestion(lane) {
+    lane.question = makeQuestion();
+    const q = lane.question;
+    lane.el.querySelector('.q-text').textContent = `${q.a} × ${q.b}`;
+    lane.qShownAt = performance.now();
+    renderAnswers(lane);
+  }
+
+  function renderAnswers(lane) {
+    const box = lane.el.querySelector('.lane-answers');
+    box.innerHTML = '';
+    if (!lane.question) return;
+    lane.question.choices.forEach((c) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ans-btn';
+      btn.textContent = String(c);
+      let handled = false;
+      const go = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (handled) return;
+        handled = true;
+        submitAnswer(lane, c, btn);
+      };
+      btn.addEventListener('pointerup', go);
+      btn.addEventListener('click', go);
+      box.appendChild(btn);
+    });
+  }
+
+  function submitAnswer(lane, value, btn) {
+    if (!state.running || state.ended) return;
+    if (performance.now() < lane.lockUntil) return;
+    if (!lane.question) return;
+
+    const correct = value === lane.question.answer;
+    const buttons = lane.el.querySelectorAll('.ans-btn');
+    buttons.forEach(b => {
+      b.disabled = true;
+      if (Number(b.textContent) === lane.question.answer) b.classList.add('correct');
+    });
+    if (btn) btn.classList.add(correct ? 'correct' : 'wrong');
+
+    if (correct) {
+      bumpCombo(lane);
+      const aw = awardCorrect(lane);
+      lane.lockUntil = performance.now() + 850;
+      const comboBit = lane.combo >= 3 ? ` · 連擊×${lane.combo}` : '';
+      showFloatMsg(lane, `+${aw.gain} 分！${comboBit}`, 'ok');
+      flashLane(lane, true);
+      startAimAndFire(lane);
+      setTimeout(() => {
+        if (!state.ended) newQuestion(lane);
+      }, 720);
+    } else {
+      resetCombo(lane);
+      lane.lockUntil = performance.now() + 520;
+      showFloatMsg(lane, `唔緊要，係 ${lane.question.answer}`, 'soft');
+      lane.el.classList.remove('flash-ok', 'flash-bad');
+      void lane.el.offsetWidth;
+      lane.el.classList.add('flash-bad');
+      setTimeout(() => lane.el.classList.remove('flash-bad'), 280);
+      setTimeout(() => {
+        if (!state.ended) newQuestion(lane);
+      }, 480);
+    }
+  }
+
+  function flashLane(lane, ok) {
+    lane.el.classList.remove('flash-ok', 'flash-bad');
+    void lane.el.offsetWidth;
+    lane.el.classList.add(ok ? 'flash-ok' : 'flash-bad');
+    setTimeout(() => lane.el.classList.remove('flash-ok', 'flash-bad'), 400);
+  }
+
+  function nearestEnemies(lane, n) {
+    return lane.enemies
+      .filter(e => e.alive)
+      .sort((a, b) => b.y - a.y)
+      .slice(0, n);
+  }
+
+  function startAimAndFire(lane) {
+    const target = nearestEnemies(lane, 1)[0] || null;
+    lane.aim = {
+      target,
+      elapsed: 0,
+      duration: 0.34,
+      startX: lane.jetX,
+      fired: false,
+      returning: false,
+      returnT: 0,
+      returnFrom: lane.jetX
+    };
+    // If no enemy, still fire after a short aim pause from current spot
+  }
+
+  function fireLaser(lane) {
+    const tier = getTier(lane);
+    const double = lane.buffDouble > 0;
+    const multi = Math.max(tier.multi, double ? 2 : 1);
+    const targets = nearestEnemies(lane, multi);
+    const jetS = (lane.jetBaseScale || 0.15) * (tier.scale || 1);
+    const ox = Math.max(5, (lane.h || 300) * 0.016);
+    const offsetsPx = multi === 1 ? [0] : multi === 2 ? [-ox, ox] : [-ox * 1.5, 0, ox * 1.5];
+    const blastR = tier.blast > 0 ? Math.max(12, (lane.h || 300) * 0.055) : 0;
+
+    for (let i = 0; i < multi; i++) {
+      const target = targets[i] || targets[0] || null;
+      lane.lasers.push({
+        x: lane.jetX + (offsetsPx[i] || 0),
+        y: lane.jetY - Math.max(6, jetS * 16),
+        target,
+        vy: -tier.speed,
+        width: Math.max(2, tier.width * 0.65),
+        pierce: tier.pierce,
+        pierced: 0,
+        blast: blastR,
+        color: tier.jetColor || lane.color,
+        alive: true
+      });
+    }
+
+    if (blastR > 0 && targets[0]) {
+      lane.blasts.push({
+        x: targets[0].x,
+        y: targets[0].y,
+        r: 3,
+        maxR: blastR,
+        life: 0.35,
+        color: tier.jetColor || lane.color
+      });
+      for (const e of lane.enemies) {
+        if (!e.alive) continue;
+        if (Math.hypot(e.x - targets[0].x, e.y - targets[0].y) <= blastR) destroyEnemy(lane, e);
+      }
+    }
+  }
+
+  function spawnEnemy(lane) {
+    const p = difficultyParams();
+    if (lane.enemies.filter(e => e.alive).length >= p.maxEnemies) return;
+    const type = ENEMY_TYPES[randInt(0, ENEMY_TYPES.length - 1)];
+    const er = lane.enemyR || Math.max(3, (lane.h || 300) * ENEMY_R_FRAC);
+    const margin = Math.max(14, er * 3);
+    const slowMul = lane.buffSlow > 0 ? 0.4 : 1;
+    lane.enemies.push({
+      x: randInt(margin, Math.max(margin + 1, lane.w - margin)),
+      y: -er * 3,
+      r: er,
+      vy: p.fallSpeed * (0.85 + Math.random() * 0.35) * slowMul,
+      baseVy: p.fallSpeed * (0.85 + Math.random() * 0.35),
+      wobble: Math.random() * Math.PI * 2,
+      wobbleSpeed: 1.5 + Math.random() * 2,
+      type,
+      alive: true,
+      dying: 0
+    });
+  }
+
+  function maybeOfferPower(lane) {
+    if (lane.pendingPower) return;
+    const def = POWER_DEFS[randInt(0, POWER_DEFS.length - 1)];
+    lane.pendingPower = { ...def, expire: 8 };
+    renderPowerSlot(lane);
+  }
+
+  function renderPowerSlot(lane) {
+    const box = lane.el.querySelector('[data-powers]');
+    box.innerHTML = '';
+    if (!lane.pendingPower) return;
+    const p = lane.pendingPower;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'power-btn';
+    btn.innerHTML = `<span>${p.icon}</span><span>${p.name}</span>`;
+    let handled = false;
+    const go = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (handled) return;
+      handled = true;
+      activatePower(lane, p.id);
+    };
+    btn.addEventListener('pointerup', go);
+    btn.addEventListener('click', go);
+    box.appendChild(btn);
+  }
+
+  function activatePower(lane, id) {
+    if (state.ended || !state.running) return;
+    lane.pendingPower = null;
+    renderPowerSlot(lane);
+
+    if (id === 'double') {
+      lane.buffDouble = 8;
+      showFloatMsg(lane, '⚡ 雙激光啟動！', 'warn');
+    } else if (id === 'slow') {
+      lane.buffSlow = 6;
+      for (const e of lane.enemies) {
+        if (e.alive) e.vy = e.baseVy * 0.4;
+      }
+      showFloatMsg(lane, '🐢 慢動作！', 'warn');
+    } else if (id === 'bomb') {
+      const list = lane.enemies.filter(e => e.alive);
+      for (const e of list) destroyEnemy(lane, e);
+      lane.blasts.push({
+        x: lane.w / 2,
+        y: lane.h / 2,
+        r: 10,
+        maxR: Math.max(lane.w, lane.h),
+        life: 0.45,
+        color: '#ffd166'
+      });
+      showFloatMsg(lane, '💣 清場！', 'warn');
+      showTransform(lane, '炸彈清場！');
+    } else if (id === 'shield') {
+      lane.shield = Math.min(2, lane.shield + 1);
+      showFloatMsg(lane, '🛡️ 護盾就緒！', 'warn');
+    }
+    updateBuffUI(lane);
+  }
+
+  function enemyEscaped(lane, enemy) {
+    enemy.alive = false;
+    if (state.ended) return;
+
+    resetCombo(lane);
+
+    if (lane.shield > 0) {
+      lane.shield -= 1;
+      updateBuffUI(lane);
+      showFloatMsg(lane, '🛡️ 護盾頂住咗！', 'warn');
+      spawnEscapeParticles(lane, enemy.x, lane.h - 10);
+      return;
+    }
+
+    // Soft miss: small penalty, never eliminate the lane
+    const pen = 15;
+    lane.score = Math.max(0, lane.score - pen);
+    updateScoreUI(lane);
+    showFloatMsg(lane, `逃走 −${pen}分`, 'soft');
+    spawnEscapeParticles(lane, enemy.x, lane.h - 10);
+  }
+
+  function destroyEnemy(lane, enemy) {
+    if (!enemy.alive) return;
+    enemy.alive = false;
+    enemy.dying = 1;
+    // Points already awarded on correct answer; hit is visual payoff
+    spawnHitParticles(lane, enemy.x, enemy.y, enemy.type.color);
+  }
+
+  function spawnHitParticles(lane, x, y, color) {
+    for (let i = 0; i < 12; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const sp = 50 + Math.random() * 140;
+      lane.particles.push({
+        x, y,
+        vx: Math.cos(ang) * sp,
+        vy: Math.sin(ang) * sp,
+        life: 0.4 + Math.random() * 0.3,
+        max: 0.7,
+        color: color || '#fff',
+        size: 2 + Math.random() * 2.5
+      });
+    }
+  }
+
+  function spawnEscapeParticles(lane, x, y) {
+    for (let i = 0; i < 8; i++) {
+      lane.particles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 80,
+        vy: -40 - Math.random() * 60,
+        life: 0.5,
+        max: 0.5,
+        color: '#a78bfa',
+        size: 3
+      });
+    }
+  }
+
+  function stopLoop() {
+    state.running = false;
+    if (state.raf) {
+      cancelAnimationFrame(state.raf);
+      state.raf = 0;
+    }
+  }
+
+  function loop(ts) {
+    if (!state.running || state.ended) return;
+    const dt = Math.min(0.05, (ts - state.lastTs) / 1000) || 0.016;
+    state.lastTs = ts;
+
+    state.timerAcc += dt;
+    if (state.timerAcc >= 0.1) {
+      state.timeLeft -= state.timerAcc;
+      state.timerAcc = 0;
+      $('timer-label').textContent = String(Math.max(0, Math.ceil(state.timeLeft)));
+      if (state.timeLeft <= 0) {
+        endGame('時間到！');
+        return;
+      }
+    }
+
+    for (const lane of state.lanes) {
+      updateLane(lane, dt);
+      drawLane(lane);
+    }
+
+    state.raf = requestAnimationFrame(loop);
+  }
+
+  function updateLane(lane, dt) {
+    lane.jetBob += dt * 3;
+    if (lane.transformFlash > 0) lane.transformFlash -= dt;
+
+    // Aim → slide under target → fire → ease back to center
+    if (lane.aim) {
+      const aim = lane.aim;
+      const margin = Math.max(18, (lane.enemyR || 5) * 3);
+      const clampX = (x) => Math.max(margin, Math.min(lane.w - margin, x));
+
+      if (!aim.fired) {
+        aim.elapsed += dt;
+        // Track moving target while aiming
+        let goalX = lane.jetHomeX;
+        if (aim.target && aim.target.alive) {
+          goalX = aim.target.x;
+        }
+        goalX = clampX(goalX);
+        const t = Math.min(1, aim.elapsed / aim.duration);
+        const ease = t * t * (3 - 2 * t);
+        lane.jetX = aim.startX + (goalX - aim.startX) * ease;
+
+        if (aim.target && aim.target.alive) {
+          const dx = aim.target.x - lane.jetX;
+          const dy = Math.max(20, lane.jetY - aim.target.y);
+          lane.jetAngle = Math.atan2(dx, dy) * 0.9;
+        } else {
+          lane.jetAngle *= 0.85;
+        }
+
+        if (t >= 1) {
+          aim.fired = true;
+          // Snap under target one last time if still alive
+          if (aim.target && aim.target.alive) {
+            lane.jetX = clampX(aim.target.x);
+          }
+          fireLaser(lane);
+          showFloatMsg(lane, lane.combo >= 3 ? `開火！連擊×${lane.combo}` : '開火！', 'ok');
+          aim.returning = true;
+          aim.returnT = 0;
+          aim.returnFrom = lane.jetX;
+        }
+      } else if (aim.returning) {
+        aim.returnT += dt;
+        const rt = Math.min(1, aim.returnT / 0.38);
+        const ease = rt * rt * (3 - 2 * rt);
+        lane.jetX = aim.returnFrom + (lane.jetHomeX - aim.returnFrom) * ease;
+        lane.jetAngle *= (1 - ease);
+        if (rt >= 1) {
+          lane.jetX = lane.jetHomeX;
+          lane.jetAngle = 0;
+          lane.aim = null;
+        }
+      }
+    } else {
+      // Idle: gently ease back to home if drifted
+      lane.jetX += (lane.jetHomeX - lane.jetX) * Math.min(1, dt * 4);
+      lane.jetAngle *= 0.9;
+    }
+
+    // buff timers
+    let buffChanged = false;
+    if (lane.buffDouble > 0) {
+      lane.buffDouble -= dt;
+      if (lane.buffDouble <= 0) { lane.buffDouble = 0; buffChanged = true; }
+    }
+    if (lane.buffSlow > 0) {
+      lane.buffSlow -= dt;
+      if (lane.buffSlow <= 0) {
+        lane.buffSlow = 0;
+        buffChanged = true;
+        for (const e of lane.enemies) {
+          if (e.alive) e.vy = e.baseVy;
+        }
+      }
+    }
+    if (buffChanged) updateBuffUI(lane);
+    // refresh buff countdown display ~5Hz
+    if ((lane.buffDouble > 0 || lane.buffSlow > 0) && Math.floor((lane.buffDouble + lane.buffSlow) * 5) !== lane._buffTick) {
+      lane._buffTick = Math.floor((lane.buffDouble + lane.buffSlow) * 5);
+      updateBuffUI(lane);
+    }
+
+    // power card spawn / expire
+    if (lane.pendingPower) {
+      lane.pendingPower.expire -= dt;
+      if (lane.pendingPower.expire <= 0) {
+        lane.pendingPower = null;
+        renderPowerSlot(lane);
+      }
+    } else {
+      lane.powerTimer -= dt;
+      if (lane.powerTimer <= 0) {
+        maybeOfferPower(lane);
+        lane.powerTimer = 9 + Math.random() * 7;
+      }
+    }
+
+    lane.spawnTimer -= dt;
+    if (lane.spawnTimer <= 0) {
+      spawnEnemy(lane);
+      const p = difficultyParams();
+      lane.spawnTimer = p.spawnGap * (0.75 + Math.random() * 0.5);
+    }
+
+    const slowMul = lane.buffSlow > 0 ? 0.4 : 1;
+
+    for (const e of lane.enemies) {
+      if (!e.alive) {
+        if (e.dying > 0) e.dying -= dt * 3;
+        continue;
+      }
+      const speed = (e.baseVy || e.vy) * slowMul;
+      e.vy = speed;
+      e.y += speed * dt;
+      e.wobble += e.wobbleSpeed * dt;
+      e.x += Math.sin(e.wobble) * 14 * dt;
+      e.x = Math.max(16, Math.min(lane.w - 16, e.x));
+
+      if (e.y + e.r >= lane.jetY - Math.max(3, (lane.enemyR || 5) * 0.6)) {
+        enemyEscaped(lane, e);
+      }
+    }
+    lane.enemies = lane.enemies.filter(e => e.alive || e.dying > 0);
+
+    // Lasers with pierce
+    for (const L of lane.lasers) {
+      if (!L.alive) continue;
+      L.y += L.vy * dt;
+
+      if (L.target && L.target.alive) {
+        const dx = L.target.x - L.x;
+        L.x += Math.sign(dx) * Math.min(Math.abs(dx), 260 * dt);
+      }
+
+      const hitList = [];
+      for (const e of lane.enemies) {
+        if (!e.alive) continue;
+        const hitPad = Math.max(8, L.width);
+        if (Math.abs(e.x - L.x) < e.r + hitPad && L.y <= e.y + e.r && L.y >= e.y - e.r - 50) {
+          hitList.push(e);
+        }
+      }
+      // prefer lower enemies first
+      hitList.sort((a, b) => b.y - a.y);
+
+      if (hitList.length) {
+        const e = hitList[0];
+        destroyEnemy(lane, e);
+        L.pierced += 1;
+        if (L.blast > 0) {
+          lane.blasts.push({
+            x: e.x, y: e.y, r: 6, maxR: L.blast * 0.7, life: 0.28, color: L.color
+          });
+          for (const o of lane.enemies) {
+            if (!o.alive || o === e) continue;
+            if (Math.hypot(o.x - e.x, o.y - e.y) <= L.blast * 0.7) destroyEnemy(lane, o);
+          }
+        }
+        if (L.pierced >= L.pierce) {
+          L.alive = false;
+        } else {
+          // continue upward; clear target so it can hit next
+          L.target = null;
+        }
+      } else if (L.y < -50) {
+        L.alive = false;
+      }
+    }
+    lane.lasers = lane.lasers.filter(L => L.alive);
+
+    // blasts
+    for (const b of lane.blasts) {
+      b.life -= dt;
+      b.r += (b.maxR - b.r) * Math.min(1, dt * 8);
+    }
+    lane.blasts = lane.blasts.filter(b => b.life > 0);
+
+    for (const p of lane.particles) {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 120 * dt;
+      p.life -= dt;
+    }
+    lane.particles = lane.particles.filter(p => p.life > 0);
+
+    for (const s of lane.stars) {
+      s.y += s.s * dt;
+      if (s.y > lane.h) {
+        s.y = -2;
+        s.x = Math.random() * lane.w;
+      }
+    }
+  }
+
+  function drawLane(lane) {
+    const ctx = lane.ctx;
+    const w = lane.w;
+    const h = lane.h;
+    if (!w || !h) return;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#0a1020');
+    g.addColorStop(1, '#152448');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+
+    // slow-mo tint
+    if (lane.buffSlow > 0) {
+      ctx.fillStyle = 'rgba(125, 211, 252, 0.08)';
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    ctx.fillStyle = '#ffffff';
+    for (const s of lane.stars) {
+      const sz = Math.max(1, s.r);
+      ctx.fillRect(s.x, s.y, sz, sz);
+    }
+
+    ctx.strokeStyle = lane.color + '22';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 10]);
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 0);
+    ctx.lineTo(w / 2, h);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // enemies — crisp filled disc + outline (high contrast on dark sky)
+    for (const e of lane.enemies) {
+      const alpha = e.alive ? 1 : Math.max(0, e.dying);
+      if (alpha <= 0) continue;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      const scale = e.alive ? 1 : (0.3 + e.dying * 0.7);
+      ctx.translate(e.x, e.y);
+      ctx.scale(scale, scale);
+      const r = e.r;
+      ctx.beginPath();
+      ctx.fillStyle = e.type.color;
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = Math.max(1, r * 0.28);
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      ctx.arc(-r * 0.25, -r * 0.25, r * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = `bold ${Math.max(5, Math.floor(r * 1.55))}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = Math.max(1, r * 0.12);
+      ctx.strokeStyle = 'rgba(0,0,0,.45)';
+      ctx.strokeText(e.type.emoji, 0, 0.3);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(e.type.emoji, 0, 0.3);
+      ctx.restore();
+    }
+
+    // blasts
+    for (const b of lane.blasts) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, b.life * 2);
+      ctx.strokeStyle = b.color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = b.color + '33';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // lasers — bright core + thin colored edge (minimal blur)
+    for (const L of lane.lasers) {
+      if (!L.alive) continue;
+      const len = Math.max(14, (lane.h || 300) * 0.045) + L.width * 2;
+      const col = L.color || lane.color;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = col;
+      ctx.lineWidth = (L.width || 3) + 1.5;
+      ctx.beginPath();
+      ctx.moveTo(L.x, L.y + len);
+      ctx.lineTo(L.x, L.y);
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(1.2, (L.width || 3) * 0.55);
+      ctx.beginPath();
+      ctx.moveTo(L.x, L.y + len);
+      ctx.lineTo(L.x, L.y);
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+    }
+
+    for (const p of lane.particles) {
+      ctx.globalAlpha = Math.max(0, p.life / p.max);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+
+    const dangerH = Math.max(24, h * 0.09);
+    const danger = ctx.createLinearGradient(0, lane.jetY - dangerH, 0, h);
+    danger.addColorStop(0, 'transparent');
+    danger.addColorStop(1, 'rgba(255,107,122,.06)');
+    ctx.fillStyle = danger;
+    ctx.fillRect(0, lane.jetY - dangerH, w, h - (lane.jetY - dangerH));
+
+    const tier = getTier(lane);
+    const jetColor = tier.jetColor || lane.color;
+    // Aim reticle while locking on
+    if (lane.aim && !lane.aim.fired && lane.aim.target && lane.aim.target.alive) {
+      const t = lane.aim.target;
+      ctx.save();
+      ctx.strokeStyle = '#ffd166';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, (t.r || 5) + 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(t.x - 8, t.y);
+      ctx.lineTo(t.x + 8, t.y);
+      ctx.moveTo(t.x, t.y - 8);
+      ctx.lineTo(t.x, t.y + 8);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    drawJet(
+      ctx,
+      lane.jetX,
+      lane.jetY + Math.sin(lane.jetBob) * Math.max(1, h * 0.003),
+      jetColor,
+      false,
+      (lane.jetBaseScale || 0.15) * (tier.scale || 1),
+      lane.tier,
+      lane.shield > 0,
+      lane.transformFlash > 0,
+      lane.jetAngle || 0
+    );
+  }
+
+  function drawJet(ctx, x, y, color, dead, scale, tier, hasShield, transforming, angle) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle || 0);
+    // `scale` already = (canvasH * JET_H_FRAC / JET_DRAW_H) * combo tier
+    const s = scale || 0.15;
+    ctx.scale(s, s);
+    if (dead) ctx.globalAlpha = 0.35;
+
+    // Thin crisp aura (outline ring, not soft bloom)
+    if (tier >= 1) {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.8;
+      ctx.ellipse(0, 0, 14 + tier * 2, 16 + tier * 2, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (transforming) {
+      ctx.beginPath();
+      ctx.strokeStyle = '#ffd166';
+      ctx.lineWidth = 2;
+      ctx.arc(0, 0, 20, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (hasShield) {
+      ctx.beginPath();
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.lineWidth = 2;
+      ctx.ellipse(0, 2, 15, 17, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Engine — brighter solid
+    ctx.beginPath();
+    ctx.fillStyle = '#fff';
+    ctx.ellipse(0, 14, 5, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.ellipse(0, 15, 7, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body fill + white outline for contrast
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.moveTo(0, -18);
+    ctx.lineTo(11, 10);
+    ctx.lineTo(3, 6);
+    ctx.lineTo(0, 13);
+    ctx.lineTo(-3, 6);
+    ctx.lineTo(-11, 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = '#ffffff';
+    ctx.stroke();
+
+    if (tier >= 2) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-14, 3, 6, 2.5);
+      ctx.fillRect(8, 3, 6, 2.5);
+    }
+    if (tier >= 3) {
+      ctx.fillStyle = '#ffd166';
+      ctx.beginPath();
+      ctx.moveTo(0, -22);
+      ctx.lineTo(2.5, -15);
+      ctx.lineTo(-2.5, -15);
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.fillStyle = '#f0f9ff';
+    ctx.ellipse(0, -5, 3.2, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.strokeStyle = '#0b1220';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-8, 6);
+    ctx.lineTo(8, 6);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function endGame(reason) {
+    if (state.ended) return;
+    state.ended = true;
+    stopLoop();
+    window.removeEventListener('resize', onResize);
+
+    $('result-sub').textContent = reason || '睇吓邊個分數最高！';
+    const ranked = [...state.lanes].sort((a, b) => b.score - a.score || b.hits - a.hits || b.maxCombo - a.maxCombo);
+    const podium = $('podium');
+    podium.innerHTML = '';
+    const medals = ['🥇', '🥈', '🥉'];
+    ranked.forEach((p, i) => {
+      const el = document.createElement('div');
+      el.className = 'podium-item' + (i === 0 ? ' gold' : '');
+      el.innerHTML = `
+        <div class="rank">${medals[i] || i + 1}</div>
+        <div class="pname">${escapeHtml(p.name)}</div>
+        <div class="pscore">${p.score} 分 · 答對 ${p.hits} · 最高連擊 ${p.maxCombo}</div>
+      `;
+      podium.appendChild(el);
+    });
+    showScreen('result');
+    if (ranked[0] && ranked[0].score > 0) spawnConfetti();
+  }
+
+  function spawnConfetti() {
+    const box = $('confetti');
+    box.innerHTML = '';
+    const colors = ['#4fd1ff', '#a78bfa', '#34d399', '#ffd166', '#ff6b7a', '#fff'];
+    for (let i = 0; i < 50; i++) {
+      const el = document.createElement('i');
+      el.style.left = Math.random() * 100 + '%';
+      el.style.background = colors[i % colors.length];
+      el.style.animationDuration = (1.5 + Math.random() * 1.8) + 's';
+      el.style.animationDelay = (Math.random() * 0.5) + 's';
+      box.appendChild(el);
+    }
+    setTimeout(() => { box.innerHTML = ''; }, 4000);
+  }
+})();
+</script>
+</body>
+</html>
