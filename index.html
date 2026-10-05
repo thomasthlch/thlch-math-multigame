@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>乘法戰機大比拼｜三年級數學</title>
+<title>數感戰機｜三年級數學</title>
 <style>
   :root {
     --bg: #070b16;
@@ -341,12 +341,32 @@
     border-top: 1px solid var(--line);
     background: rgba(0,0,0,.35);
     flex-shrink: 0;
+    min-width: 0;
+    container-type: inline-size;
   }
+  .lane-q .q-kicker {
+    font-size: .72rem;
+    font-weight: 800;
+    color: var(--muted);
+    letter-spacing: .06em;
+    line-height: 1.2;
+  }
+  .lane-q .q-kicker:empty { display: none; }
   .lane-q .q-text {
     font-size: clamp(1.35rem, 2.6vw, 1.9rem);
     font-weight: 900;
     letter-spacing: .04em;
     line-height: 1.1;
+  }
+  .lane-q .q-text.q-mid {
+    font-size: clamp(.85rem, 7.5cqi, 1.4rem);
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .lane-q .q-text.q-long {
+    font-size: clamp(.95rem, 1.7vw, 1.22rem);
+    letter-spacing: 0;
+    line-height: 1.25;
   }
   .float-msg-layer {
     position: absolute;
@@ -399,8 +419,10 @@
     padding: 4px 6px 6px;
     flex-shrink: 0;
   }
+  .lane-answers.cols-3 { grid-template-columns: repeat(3, 1fr); }
   @media (min-width: 1400px) {
     .lane-answers { grid-template-columns: repeat(4, 1fr); }
+    .lane-answers.cols-3 { grid-template-columns: repeat(3, 1fr); }
   }
 
   .ans-btn {
@@ -615,19 +637,29 @@
 
   <!-- START -->
   <section id="screen-start" class="screen active">
-    <div class="emoji-title">🚀✖️👾</div>
-    <h1>乘法戰機大比拼</h1>
+    <div class="emoji-title">🚀</div>
+    <h1>數感戰機</h1>
     <p class="subtitle">計時賽 · 三欄同時玩 · 答得快答得多就贏</p>
 
     <div class="card">
       <div class="settings-grid">
+        <div class="field">
+          <label>玩法</label>
+          <div class="seg" id="mode-seg">
+            <button type="button" data-mode="mult" class="active">乘法表</button>
+            <button type="button" data-mode="unit">單位</button>
+            <button type="button" data-mode="digit">五位數</button>
+          </div>
+          <p class="tip" id="mode-blurb" style="margin-top:8px;margin-bottom:0;">乘法表：計乘法，揀正確答案。</p>
+        </div>
+
         <div class="field">
           <label>三欄玩家名稱（電子白板可三人同時撳）</label>
           <div class="player-names" id="name-inputs"></div>
         </div>
 
         <div class="field">
-          <label>難度（影響敵人下落速度）</label>
+          <label>難度（下落速度，同埋題目深淺）</label>
           <div class="seg" id="difficulty-seg">
             <button type="button" data-d="easy">簡單<br><small style="font-weight:600;opacity:.8">1–5 · 慢</small></button>
             <button type="button" data-d="normal" class="active">普通<br><small style="font-weight:600;opacity:.8">1–9</small></button>
@@ -655,14 +687,14 @@
       </div>
 
       <button class="btn btn-primary" id="btn-start">🚀 開始遊戲</button>
-      <p class="tip">玩法：敵人由上往下跌。答啱 → 瞄準開火得分（快答＋連擊有加成）。答錯只係溫柔提點、斷連擊，繼續玩。敵人逃走只扣少少分／斷連擊，唔會出局。倒數完一齊睇排行榜！</p>
+      <p class="tip" id="how-tip">玩法：敵人由上往下跌。答啱 → 瞄準開火得分（快答＋連擊有加成）。答錯只係溫柔提點、斷連擊，繼續玩。敵人逃走只扣少少分／斷連擊，唔會出局。倒數完一齊睇排行榜！</p>
     </div>
   </section>
 
   <!-- GAME -->
   <section id="screen-game" class="screen">
     <div class="game-top">
-      <span class="pill">計時賽 · 剩餘 <strong id="timer-label">90</strong> 秒 · 睇邊個分數最高！</span>
+      <span class="pill"><span id="mode-label">乘法表</span> · 剩餘 <strong id="timer-label">90</strong> 秒 · 睇邊個分數最高！</span>
       <button class="btn btn-ghost" id="btn-quit" type="button">結束</button>
     </div>
 
@@ -721,9 +753,84 @@
   const JET_H_FRAC = 0.05;     // jet visual height ≈ 5% of canvas height
   const JET_DRAW_H = 32;       // approx unscaled jet path height
 
+  const MODE_META = {
+    mult: {
+      label: '乘法表',
+      blurb: '乘法表：計乘法，揀正確答案。',
+      tip: '玩法：敵人由上往下跌。答啱 → 瞄準開火得分（快答＋連擊有加成）。答錯只係溫柔提點、斷連擊，繼續玩。敵人逃走只扣少少分／斷連擊，唔會出局。倒數完一齊睇排行榜！'
+    },
+    unit: {
+      label: '單位',
+      blurb: '單位特工：睇情景，揀合適長度單位 mm／cm／m／km。',
+      tip: '玩法：敵人由上往下跌。睇物件或情景，揀合適長度單位（mm、cm、m、km）。答啱 → 瞄準開火得分（快答＋連擊有加成）。答錯只係溫柔提點、斷連擊，繼續玩。敵人逃走只扣少少分，唔會出局。'
+    },
+    digit: {
+      label: '五位數',
+      blurb: '五位數擂台：比較兩個五位數（＞ ＜ ＝），或者搵出萬位數字。',
+      tip: '玩法：敵人由上往下跌。比較兩個五位數要填 ＞、＜ 或 ＝，又或者搵出萬位數字。答啱 → 瞄準開火得分。答錯只係溫柔提點、斷連擊，繼續玩。敵人逃走只扣少少分，唔會出局。'
+    }
+  };
+  const DIFF_COPY = {
+    mult: {
+      easy: '簡單<br><small style="font-weight:600;opacity:.8">1–5 · 慢</small>',
+      normal: '普通<br><small style="font-weight:600;opacity:.8">1–9</small>',
+      challenge: '挑戰<br><small style="font-weight:600;opacity:.8">含0 · 快</small>'
+    },
+    unit: {
+      easy: '簡單<br><small style="font-weight:600;opacity:.8">好明顯 · 慢</small>',
+      normal: '普通<br><small style="font-weight:600;opacity:.8">日常物件</small>',
+      challenge: '挑戰<br><small style="font-weight:600;opacity:.8">易混淆 · 快</small>'
+    },
+    digit: {
+      easy: '簡單<br><small style="font-weight:600;opacity:.8">差好遠 · 慢</small>',
+      normal: '普通<br><small style="font-weight:600;opacity:.8">比較或萬位</small>',
+      challenge: '挑戰<br><small style="font-weight:600;opacity:.8">好接近 · 快</small>'
+    }
+  };
+  const UNIT_CHOICES = ['mm', 'cm', 'm', 'km'];
+  const UNIT_BANK = [
+    { q: '螞蟻幾長？', a: 'mm', level: 1 },
+    { q: '米粒幾長？', a: 'mm', level: 1 },
+    { q: '紙張幾厚？', a: 'mm', level: 1 },
+    { q: '芝麻幾長？', a: 'mm', level: 1 },
+    { q: '鉛筆幾長？', a: 'cm', level: 1 },
+    { q: '擦膠幾長？', a: 'cm', level: 1 },
+    { q: '間尺幾長？', a: 'cm', level: 1 },
+    { q: '原子筆幾長？', a: 'cm', level: 1 },
+    { q: '課室門幾高？', a: 'm', level: 1 },
+    { q: '黑板幾長？', a: 'm', level: 1 },
+    { q: '小朋友幾高？', a: 'm', level: 1 },
+    { q: '校巴幾長？', a: 'm', level: 1 },
+    { q: '香港去北京幾遠？', a: 'km', level: 1 },
+    { q: '去海洋公園幾遠？', a: 'km', level: 1 },
+    { q: '兩個城市幾遠？', a: 'km', level: 1 },
+    { q: '九龍去大嶼山幾遠？', a: 'km', level: 1 },
+    { q: '指甲幾闊？', a: 'mm', level: 2 },
+    { q: '迴紋針幾幼？', a: 'mm', level: 2 },
+    { q: '故事書幾長？', a: 'cm', level: 2 },
+    { q: '蘋果幾高？', a: 'cm', level: 2 },
+    { q: '手掌幾闊？', a: 'cm', level: 2 },
+    { q: '電話幾長？', a: 'cm', level: 2 },
+    { q: '小樹幾高？', a: 'm', level: 2 },
+    { q: '課室幾長？', a: 'm', level: 2 },
+    { q: '球場幾長？', a: 'm', level: 2 },
+    { q: '九龍去港島幾遠？', a: 'km', level: 2 },
+    { q: '坐巴士去外婆家幾遠？', a: 'km', level: 2 },
+    { q: '頭髮幾粗？', a: 'mm', level: 3 },
+    { q: '迴紋針幾長？', a: 'cm', level: 3 },
+    { q: '火柴幾長？', a: 'cm', level: 3 },
+    { q: '課桌幾高？', a: 'cm', level: 3 },
+    { q: '手指幾闊？', a: 'cm', level: 3 },
+    { q: '操場幾長？', a: 'm', level: 3 },
+    { q: '游泳池幾長？', a: 'm', level: 3 },
+    { q: '坐港鐵去奶奶家幾遠？', a: 'km', level: 3 }
+  ];
+
   const state = {
     names: [...DEFAULT_NAMES],
+    mode: 'mult',
     difficulty: 'normal',
+    recentKeys: [],
     timeLimit: 90,
     lanes: [],
     running: false,
@@ -776,6 +883,22 @@
     }
   }
 
+  function applyMode(mode) {
+    if (!MODE_META[mode]) mode = 'mult';
+    state.mode = mode;
+    const meta = MODE_META[mode];
+    const blurb = $('mode-blurb');
+    if (blurb) blurb.textContent = meta.blurb;
+    const tip = $('how-tip');
+    if (tip) tip.textContent = meta.tip;
+    const diffCopy = DIFF_COPY[mode];
+    document.querySelectorAll('#difficulty-seg button').forEach(btn => {
+      if (diffCopy[btn.dataset.d]) btn.innerHTML = diffCopy[btn.dataset.d];
+    });
+    const modeLabel = $('mode-label');
+    if (modeLabel) modeLabel.textContent = meta.label;
+  }
+
   document.querySelectorAll('#difficulty-seg button').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#difficulty-seg button').forEach(b => b.classList.remove('active'));
@@ -784,6 +907,15 @@
     });
   });
 
+  document.querySelectorAll('#mode-seg button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#mode-seg button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyMode(btn.dataset.mode);
+    });
+  });
+
+  applyMode('mult');
   renderNameInputs();
 
   $('btn-start').addEventListener('click', startGame);
@@ -830,13 +962,148 @@
     return randInt(p.min, p.max);
   }
 
-  function makeQuestion() {
+  function rememberKey(key) {
+    if (!key) return;
+    state.recentKeys.push(key);
+    if (state.recentKeys.length > 12) state.recentKeys.shift();
+  }
+
+  function pickFresh(list, keyOf) {
+    const fresh = list.filter(item => !state.recentKeys.includes(keyOf(item)));
+    const pool = fresh.length ? fresh : list;
+    return pool[randInt(0, pool.length - 1)];
+  }
+
+  function unitLevelMax() {
+    if (state.difficulty === 'easy') return 1;
+    if (state.difficulty === 'challenge') return 3;
+    return 2;
+  }
+
+  function makeUnitQuestion() {
+    const maxLevel = unitLevelMax();
+    const pool = UNIT_BANK.filter(item => item.level <= maxLevel);
+    const item = pickFresh(pool, (row) => row.q);
+    return {
+      display: item.q,
+      answer: item.a,
+      choices: shuffle([...UNIT_CHOICES]),
+      kicker: '揀長度單位',
+      key: item.q,
+      long: item.q.length > 8
+    };
+  }
+
+  function format5(n) {
+    const s = String(n).padStart(5, '0');
+    return s.slice(0, 2) + ' ' + s.slice(2);
+  }
+
+  function digitsOf(n) {
+    return String(n).padStart(5, '0').split('').map(Number);
+  }
+
+  function tweakPlace(n, placeIndex) {
+    const d = digitsOf(n);
+    const cur = d[placeIndex];
+    const min = placeIndex === 0 ? 1 : 0;
+    const step = randInt(1, 4);
+    let next = cur + step;
+    if (next > 9) next = cur - step;
+    if (next < min || next === cur) next = cur + 1;
+    if (next > 9) next = cur - 1;
+    if (next < min) next = min + 1;
+    d[placeIndex] = next;
+    const out = Number(d.join(''));
+    if (out === n) return n >= 90000 ? n - 10000 : n + 10000;
+    return out;
+  }
+
+  function makeCompareQuestion() {
+    const a = randInt(10000, 99999);
+    let b = a;
+    let equalChance = 0;
+    let places = [0, 1];
+    if (state.difficulty === 'normal') {
+      equalChance = 0.1;
+      places = [2, 3];
+    } else if (state.difficulty === 'challenge') {
+      equalChance = 0.15;
+      places = [4];
+    }
+    if (Math.random() >= equalChance) {
+      b = tweakPlace(a, places[randInt(0, places.length - 1)]);
+    }
+    const answer = a > b ? '＞' : a < b ? '＜' : '＝';
+    const display = `${format5(a)}  ○  ${format5(b)}`;
+    return {
+      display,
+      answer,
+      choices: ['＞', '＜', '＝'],
+      kicker: '比較大小',
+      key: 'cmp:' + display,
+      mid: true
+    };
+  }
+
+  function makePlaceQuestion() {
+    const digits = [randInt(1, 9)];
+    if (state.difficulty === 'challenge' && Math.random() < 0.45) {
+      while (digits.length < 5) digits.push(randInt(0, 9));
+    } else {
+      const pool = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].filter(d => d !== digits[0]));
+      while (digits.length < 5) digits.push(pool.pop());
+    }
+    const n = Number(digits.join(''));
+    const answer = String(digits[0]);
+    const set = new Set([answer]);
+    for (let i = 1; i < digits.length && set.size < 4; i++) set.add(String(digits[i]));
+    let extra = 0;
+    while (set.size < 4 && extra < 12) {
+      set.add(String((Number(answer) + 1 + extra) % 10));
+      extra++;
+    }
+    return {
+      display: `${format5(n)} 的萬位是？`,
+      answer,
+      choices: shuffle([...set].slice(0, 4)),
+      kicker: '萬位數字',
+      key: 'wan:' + n,
+      mid: true
+    };
+  }
+
+  function makeDigitQuestion() {
+    const builders = [makeCompareQuestion, makePlaceQuestion];
+    let q = builders[randInt(0, 1)]();
+    let guard = 0;
+    while (state.recentKeys.includes(q.key) && guard < 6) {
+      q = builders[randInt(0, 1)]();
+      guard++;
+    }
+    return q;
+  }
+
+  function makeMultQuestion() {
     const p = difficultyParams();
     let a = pickFactor(p);
     let b = pickFactor(p);
     if (Math.random() < 0.5) [a, b] = [b, a];
     const answer = a * b;
-    return { a, b, answer, choices: makeChoices(a, b, answer) };
+    const display = `${a} × ${b}`;
+    return {
+      display,
+      answer,
+      choices: makeChoices(a, b, answer),
+      kicker: '乘法表',
+      key: display
+    };
+  }
+
+  function makeQuestion() {
+    if (state.mode === 'unit') return makeUnitQuestion();
+    if (state.mode === 'digit') return makeDigitQuestion();
+    return makeMultQuestion();
   }
 
   function makeChoices(a, b, answer) {
@@ -888,6 +1155,9 @@
     inputs.forEach((inp, i) => {
       state.names[i] = inp.value.trim() || DEFAULT_NAMES[i];
     });
+    const activeMode = document.querySelector('#mode-seg button.active');
+    if (activeMode) applyMode(activeMode.dataset.mode);
+    state.recentKeys = [];
     state.timeLimit = Number($('race-time').value) || timeForDifficulty();
     state.timeLeft = state.timeLimit;
     state.ended = false;
@@ -955,6 +1225,7 @@
           <div class="power-slot" data-powers></div>
         </div>
         <div class="lane-q">
+          <div class="q-kicker"></div>
           <div class="q-text">? × ?</div>
         </div>
         <div class="lane-answers"></div>
@@ -1164,7 +1435,14 @@
   function newQuestion(lane) {
     lane.question = makeQuestion();
     const q = lane.question;
-    lane.el.querySelector('.q-text').textContent = `${q.a} × ${q.b}`;
+    rememberKey(q.key);
+    const el = lane.el.querySelector('.q-text');
+    el.textContent = q.display;
+    el.classList.remove('q-mid', 'q-long');
+    if (q.long) el.classList.add('q-long');
+    else if (q.mid) el.classList.add('q-mid');
+    const kicker = lane.el.querySelector('.q-kicker');
+    if (kicker) kicker.textContent = q.kicker || '';
     lane.qShownAt = performance.now();
     renderAnswers(lane);
   }
@@ -1173,10 +1451,12 @@
     const box = lane.el.querySelector('.lane-answers');
     box.innerHTML = '';
     if (!lane.question) return;
+    box.classList.toggle('cols-3', lane.question.choices.length === 3);
     lane.question.choices.forEach((c) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'ans-btn';
+      btn.dataset.choice = String(c);
       btn.textContent = String(c);
       let handled = false;
       const go = (e) => {
@@ -1197,11 +1477,12 @@
     if (performance.now() < lane.lockUntil) return;
     if (!lane.question) return;
 
-    const correct = value === lane.question.answer;
+    const answerKey = String(lane.question.answer);
+    const correct = String(value) === answerKey;
     const buttons = lane.el.querySelectorAll('.ans-btn');
     buttons.forEach(b => {
       b.disabled = true;
-      if (Number(b.textContent) === lane.question.answer) b.classList.add('correct');
+      if (b.dataset.choice === answerKey) b.classList.add('correct');
     });
     if (btn) btn.classList.add(correct ? 'correct' : 'wrong');
 
@@ -1920,7 +2201,8 @@
     stopLoop();
     window.removeEventListener('resize', onResize);
 
-    $('result-sub').textContent = reason || '睇吓邊個分數最高！';
+    const modeLabel = (MODE_META[state.mode] || MODE_META.mult).label;
+    $('result-sub').textContent = `${reason || '睇吓邊個分數最高！'} · ${modeLabel}`;
     const ranked = [...state.lanes].sort((a, b) => b.score - a.score || b.hits - a.hits || b.maxCombo - a.maxCombo);
     const podium = $('podium');
     podium.innerHTML = '';
