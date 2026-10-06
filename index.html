@@ -1138,7 +1138,9 @@
     timeLeft: 90,
     raf: 0,
     lastTs: 0,
-    timerAcc: 0
+    timerAcc: 0,
+    nextEnemyId: 1,
+    shotLog: []
   };
 
   const $ = (id) => document.getElementById(id);
@@ -1987,8 +1989,14 @@
       .slice(0, n);
   }
 
+  function pickAimTarget(lane) {
+    const alive = lane.enemies.filter(e => e.alive).sort((a, b) => b.y - a.y);
+    return alive.find(e => !e.locked) || alive[0] || null;
+  }
+
   function startAimAndFire(lane) {
-    const target = nearestEnemies(lane, 1)[0] || null;
+    const target = pickAimTarget(lane);
+    if (target) target.locked = true;
     lane.aim = {
       target,
       elapsed: 0,
@@ -2013,56 +2021,66 @@
     return out;
   }
 
+  function noteShot(entry) {
+    if (!DEBUG_SPAWN) return;
+    state.shotLog.push(entry);
+    window.__shotLog = state.shotLog;
+  }
+
   function fireLaser(lane) {
     const tier = getTier(lane);
     const extra = lane.buffDouble > 0 ? 1 : 0;
     const multi = Math.min(5, tier.multi + extra);
-    const targets = nearestEnemies(lane, multi);
+    const locked = lane.aim && lane.aim.target && lane.aim.target.alive ? lane.aim.target : null;
     const jetS = (lane.jetBaseScale || 0.15) * (tier.scale || 1);
     const ox = Math.max(16, (lane.h || 300) * 0.042);
     const offsets = shotOffsets(multi, ox);
     const h = lane.h || 300;
     const blastR = tier.blast > 0 ? Math.max(16, h * tier.blast) : 0;
-    const center = Math.floor((multi - 1) / 2);
     const color = tier.jetColor || lane.color;
+    const muzzleY = lane.jetY - Math.max(6, jetS * 16);
+    const level = lane.fireLevel || 0;
 
-    for (let i = 0; i < multi; i++) {
-      const off = offsets[i] || 0;
-      const isCenter = i === center;
-      const isBeam = !!tier.beam && (multi === 1 || isCenter);
+    // One centre shot, locked to the enemy the jet just aimed at.
+    lane.lasers.push({
+      x: lane.jetX,
+      y: muzzleY,
+      target: locked,
+      guaranteed: true,
+      vy: -Math.abs(tier.speed),
+      vx: 0,
+      width: tier.beam ? tier.width : Math.max(3.4, tier.width * 0.95),
+      pierce: 99,
+      pierced: 0,
+      blast: blastR,
+      color,
+      beam: !!tier.beam,
+      alive: true,
+      didHit: false,
+      level
+    });
+    if (locked) noteShot({ type: 'fire', level, id: locked.id });
+
+    offsets.forEach((off, i) => {
+      if (Math.abs(off) < 0.5) return;
       const spread = tier.spread || 0;
-      const vx = spread && !isBeam ? (off / ox) * 150 * spread : 0;
-      const home = isBeam || (spread && !isCenter) ? null : (targets[i] || targets[0] || null);
+      const bonusTarget = spread ? null : (nearestEnemies(lane, multi).filter(e => e !== locked)[i] || null);
       lane.lasers.push({
         x: lane.jetX + off,
-        y: lane.jetY - Math.max(6, jetS * 16),
-        target: home,
-        vy: -tier.speed,
-        vx,
-        width: isBeam ? tier.width : Math.max(3.4, tier.width * 0.95),
-        pierce: isBeam ? tier.pierce + extra : Math.max(1, tier.pierce),
+        y: muzzleY,
+        target: bonusTarget && !bonusTarget.locked ? bonusTarget : null,
+        guaranteed: false,
+        vy: -Math.abs(tier.speed),
+        vx: spread ? (off / ox) * 150 * spread : 0,
+        width: Math.max(3.2, tier.width * 0.8),
+        pierce: Math.max(1, tier.pierce + (tier.beam ? extra : 0)),
         pierced: 0,
-        blast: isCenter ? blastR : 0,
+        blast: 0,
         color,
-        beam: isBeam,
+        beam: false,
         alive: true
       });
-    }
-
-    if (blastR > 0 && targets[0]) {
-      lane.blasts.push({
-        x: targets[0].x,
-        y: targets[0].y,
-        r: 4,
-        maxR: blastR,
-        life: 0.35,
-        color
-      });
-      for (const e of lane.enemies) {
-        if (!e.alive) continue;
-        if (Math.hypot(e.x - targets[0].x, e.y - targets[0].y) <= blastR) destroyEnemy(lane, e);
-      }
-    }
+    });
   }
 
   function spawnEnemy(lane) {
@@ -2083,7 +2101,9 @@
       wobbleSpeed: 1.5 + Math.random() * 2,
       type,
       alive: true,
-      dying: 0
+      dying: 0,
+      locked: false,
+      id: state.nextEnemyId++
     });
   }
 
@@ -2151,6 +2171,7 @@
   }
 
   function enemyEscaped(lane, enemy) {
+    if (enemy.locked) return;
     enemy.alive = false;
     if (state.ended) return;
 
@@ -2178,6 +2199,7 @@
   function destroyEnemy(lane, enemy) {
     if (!enemy.alive) return;
     enemy.alive = false;
+    enemy.locked = false;
     enemy.dying = 1;
     // Points already awarded on correct answer; hit is visual payoff
     spawnHitParticles(lane, enemy.x, enemy.y, enemy.type.color);
@@ -2243,6 +2265,101 @@
     }
 
     state.raf = requestAnimationFrame(loop);
+  }
+
+  function splashAround(lane, x, y, radius, color, skip) {
+    if (!(radius > 0)) return;
+    lane.blasts.push({ x, y, r: 4, maxR: radius, life: 0.32, color: color || '#fff' });
+    for (const o of lane.enemies) {
+      if (!o.alive || o === skip || o.locked) continue;
+      if (Math.hypot(o.x - x, o.y - y) <= radius) destroyEnemy(lane, o);
+    }
+  }
+
+  function updateGuaranteedLaser(lane, L, dt) {
+    const e = L.target;
+    if (!L.shotSpeed) L.shotSpeed = Math.max(520, Math.abs(L.vy) || 980);
+    const speed = L.shotSpeed;
+    if (!e || !e.alive) {
+      L.vx = 0;
+      L.vy = -speed;
+      L.y += L.vy * dt;
+      if (L.y < -80) L.alive = false;
+      return;
+    }
+    L.age = (L.age || 0) + dt;
+    const dx = e.x - L.x;
+    const dy = e.y - L.y;
+    const dist = Math.hypot(dx, dy);
+    const step = speed * dt;
+    if (L.beam) {
+      for (const o of lane.enemies) {
+        if (!o.alive || o === e || o.locked) continue;
+        if (Math.abs(o.x - L.x) < o.r + Math.max(8, L.width) && Math.abs(o.y - L.y) < o.r + 40) {
+          destroyEnemy(lane, o);
+        }
+      }
+    }
+    if (dist <= Math.max(e.r * 0.65, 6) || step >= dist || L.age > 1.6) {
+      L.x = e.x;
+      L.y = e.y;
+      L.vx = 0;
+      L.vy = -speed;
+      const id = e.id;
+      destroyEnemy(lane, e);
+      splashAround(lane, e.x, e.y, L.blast, L.color, e);
+      L.didHit = true;
+      noteShot({ type: 'hit', level: L.level, id });
+      L.alive = false;
+      return;
+    }
+    L.vx = (dx / dist) * speed;
+    L.vy = (dy / dist) * speed;
+    L.x += L.vx * dt;
+    L.y += L.vy * dt;
+  }
+
+  function updateBonusLaser(lane, L, dt) {
+    L.y += L.vy * dt;
+    L.x += (L.vx || 0) * dt;
+    if (L.x < -40 || L.x > lane.w + 40) {
+      L.alive = false;
+      return;
+    }
+    if (L.target && L.target.alive && !L.target.locked) {
+      const dx = L.target.x - L.x;
+      L.x += Math.sign(dx) * Math.min(Math.abs(dx), 260 * dt);
+    }
+    const hitList = [];
+    for (const e of lane.enemies) {
+      if (!e.alive || e.locked) continue;
+      const hitPad = Math.max(8, L.width);
+      const yReach = e.r + 50;
+      if (Math.abs(e.x - L.x) < e.r + hitPad && L.y <= e.y + e.r && L.y >= e.y - yReach) {
+        hitList.push(e);
+      }
+    }
+    hitList.sort((a, b) => b.y - a.y);
+    if (hitList.length) {
+      const room = Math.max(1, L.pierce - L.pierced);
+      for (const e of hitList.slice(0, room)) {
+        destroyEnemy(lane, e);
+        L.pierced += 1;
+      }
+      if (L.pierced >= L.pierce) L.alive = false;
+      else L.target = null;
+    } else if (L.y < -50) {
+      L.alive = false;
+    }
+  }
+
+  function updateLasers(lane, dt) {
+    for (const L of lane.lasers) {
+      if (!L.alive) continue;
+      if (L.guaranteed) updateGuaranteedLaser(lane, L, dt);
+      else updateBonusLaser(lane, L, dt);
+    }
+    lane.lasers = lane.lasers.filter(L => L.alive);
   }
 
   function updateLane(lane, dt) {
@@ -2367,66 +2484,17 @@
       e.wobble += e.wobbleSpeed * dt;
       e.x += Math.sin(e.wobble) * 14 * dt;
       e.x = Math.max(16, Math.min(lane.w - 16, e.x));
+    }
 
+    updateLasers(lane, dt);
+
+    for (const e of lane.enemies) {
+      if (!e.alive) continue;
       if (e.y + e.r >= lane.jetY - Math.max(3, (lane.enemyR || 5) * 0.6)) {
         enemyEscaped(lane, e);
       }
     }
     lane.enemies = lane.enemies.filter(e => e.alive || e.dying > 0);
-
-    // Lasers with pierce
-    for (const L of lane.lasers) {
-      if (!L.alive) continue;
-      L.y += L.vy * dt;
-      L.x += (L.vx || 0) * dt;
-      if (L.x < -40 || L.x > lane.w + 40) {
-        L.alive = false;
-        continue;
-      }
-
-      if (L.target && L.target.alive && !L.beam) {
-        const dx = L.target.x - L.x;
-        L.x += Math.sign(dx) * Math.min(Math.abs(dx), 260 * dt);
-      }
-
-      const hitList = [];
-      for (const e of lane.enemies) {
-        if (!e.alive) continue;
-        const hitPad = Math.max(8, L.width);
-        const yReach = L.beam ? e.r + Math.max(28, (lane.h || 300) * 0.08) : e.r + 50;
-        if (Math.abs(e.x - L.x) < e.r + hitPad && L.y <= e.y + e.r && L.y >= e.y - yReach) {
-          hitList.push(e);
-        }
-      }
-      // prefer lower enemies first
-      hitList.sort((a, b) => b.y - a.y);
-
-      if (hitList.length) {
-        const room = Math.max(1, L.pierce - L.pierced);
-        const victims = (L.beam ? hitList : hitList.slice(0, 1)).slice(0, room);
-        for (const e of victims) {
-          destroyEnemy(lane, e);
-          L.pierced += 1;
-          if (L.blast > 0) {
-            lane.blasts.push({
-              x: e.x, y: e.y, r: 6, maxR: L.blast * 0.85, life: 0.28, color: L.color
-            });
-            for (const o of lane.enemies) {
-              if (!o.alive || o === e) continue;
-              if (Math.hypot(o.x - e.x, o.y - e.y) <= L.blast * 0.85) destroyEnemy(lane, o);
-            }
-          }
-        }
-        if (L.pierced >= L.pierce) {
-          L.alive = false;
-        } else {
-          L.target = null;
-        }
-      } else if (L.y < (L.beam ? -((lane.h || 300) * 0.4) : -50)) {
-        L.alive = false;
-      }
-    }
-    lane.lasers = lane.lasers.filter(L => L.alive);
 
     // blasts
     for (const b of lane.blasts) {
@@ -2541,26 +2609,39 @@
       ctx.restore();
     }
 
-    // lasers — bolts stay short; beams are long, bright columns
+    // lasers — bolts stay short; beams are long. Centre shots point at their target.
     for (const L of lane.lasers) {
       if (!L.alive) continue;
-      const len = L.beam
+      let len = L.beam
         ? Math.max(96, (lane.h || 300) * (L.width >= 13 ? 0.48 : 0.36))
         : Math.max(18, (lane.h || 300) * 0.075) + L.width * 2;
+      const speed = Math.hypot(L.vx || 0, L.vy || 0) || 1;
+      let dirx = (L.vx || 0) / speed;
+      let diry = (L.vy || -speed) / speed;
+      if (L.guaranteed && L.target && L.target.alive) {
+        const dx = L.target.x - L.x;
+        const dy = L.target.y - L.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        dirx = dx / dist;
+        diry = dy / dist;
+        len = Math.min(len, Math.max(10, dist));
+      }
       const col = L.color || lane.color;
       const outer = L.beam ? Math.max(7, L.width * 0.85) : (L.width || 3) + 1.5;
       const core = L.beam ? Math.max(2.4, outer * 0.38) : Math.max(1.3, (L.width || 3) * 0.5);
+      const tailX = L.x - dirx * len;
+      const tailY = L.y - diry * len;
       ctx.lineCap = 'round';
       ctx.strokeStyle = col;
       ctx.lineWidth = outer;
       ctx.beginPath();
-      ctx.moveTo(L.x, L.y + len);
+      ctx.moveTo(tailX, tailY);
       ctx.lineTo(L.x, L.y);
       ctx.stroke();
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = core;
       ctx.beginPath();
-      ctx.moveTo(L.x, L.y + len);
+      ctx.moveTo(tailX, tailY);
       ctx.lineTo(L.x, L.y);
       ctx.stroke();
       ctx.lineCap = 'butt';
