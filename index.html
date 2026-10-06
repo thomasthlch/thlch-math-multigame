@@ -842,6 +842,44 @@
   }
   .combo-flair.show { animation: flairPop 1.15s ease forwards; }
   .combo-flair.lv3 { color: #ffe0e4; text-shadow: 0 0 16px #ff6b7a, 0 3px 0 #5a1020; }
+  .powerup-banner {
+    position: absolute;
+    left: 50%;
+    top: 40%;
+    z-index: 12;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .powerup-banner.show { animation: powerupIn 1.45s ease forwards; }
+  .powerup-title {
+    font-size: clamp(1.8rem, 3.8vw, 3.4rem);
+    font-weight: 900;
+    letter-spacing: .06em;
+    color: #fff8dc;
+    text-shadow:
+      0 0 14px var(--tier-color, #ffd166),
+      0 0 28px var(--tier-color, #ff9f43),
+      0 4px 0 #3a2200;
+  }
+  .powerup-sub {
+    margin-top: 2px;
+    font-size: clamp(1.05rem, 2vw, 1.6rem);
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 10px var(--tier-color, #ffd166);
+  }
+  @keyframes powerupIn {
+    0% { opacity: 0; transform: translate(-50%, -36%) scale(.5); }
+    16% { opacity: 1; transform: translate(-50%, -50%) scale(1.14); }
+    68% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -64%) scale(.96); }
+  }
+  .streak-flash.levelup {
+    background: radial-gradient(circle at 50% 62%, var(--tier-color, #ffd166), transparent 64%);
+  }
   @keyframes flairPop {
     0% { opacity: 0; transform: translate(-50%, -40%) scale(.45); }
     18% { opacity: 1; transform: translate(-50%, -50%) scale(1.16); }
@@ -1058,12 +1096,16 @@
 
   const DEFAULT_NAMES = ['藍隊', '紫隊', '綠隊'];
   const LANE_COLORS = ['#4fd1ff', '#a78bfa', '#34d399'];
-  const COMBO_TIERS = [
-    { need: 0, name: '', scale: 1, speed: 900, width: 3, pierce: 1, multi: 1, blast: 0, jetColor: null },
-    { need: 3, name: '火焰型', scale: 1.1, speed: 1150, width: 5, pierce: 1, multi: 1, blast: 0, jetColor: '#ff9f43' },
-    { need: 5, name: '穿甲型', scale: 1.2, speed: 1300, width: 6, pierce: 2, multi: 1, blast: 0, jetColor: '#a78bfa' },
-    { need: 8, name: '究極型', scale: 1.3, speed: 1500, width: 8, pierce: 2, multi: 3, blast: 36, jetColor: '#ff6b7a' }
+  // Every 5 combo is a firepower level. Forms cap at 終極; higher levels stay mega but hit a little harder.
+  const FIRE_FORMS = [
+    { name: '單發', scale: 1, speed: 980, width: 3.2, pierce: 1, multi: 1, spread: 0, beam: false, blast: 0, jetColor: null },
+    { name: '雙發', scale: 1.12, speed: 1120, width: 4.4, pierce: 1, multi: 2, spread: 0, beam: false, blast: 0, jetColor: '#ff9f43' },
+    { name: '散射', scale: 1.22, speed: 1200, width: 4.2, pierce: 1, multi: 3, spread: 1, beam: false, blast: 0, jetColor: '#c084fc' },
+    { name: '激光', scale: 1.3, speed: 1720, width: 11, pierce: 7, multi: 1, spread: 0, beam: true, blast: 0, jetColor: '#67e8f9' },
+    { name: '終極', scale: 1.42, speed: 1540, width: 14, pierce: 8, multi: 3, spread: 0.4, beam: true, blast: 0.06, jetColor: '#ff4d6d' }
   ];
+  const ENEMY_CAP_MAX = 7;
+  const DEBUG_SPAWN = /(?:\?|&)debug=1(?:&|$)/.test(location.search);
   const POWER_DEFS = [
     { id: 'double', icon: '⚡', name: '雙激光', duration: 8 },
     { id: 'slow', icon: '🐢', name: '慢動作', duration: 6 },
@@ -1290,16 +1332,46 @@
       .replace(/"/g, '&quot;');
   }
 
-  function comboTierIndex(combo) {
-    let t = 0;
-    for (let i = 0; i < COMBO_TIERS.length; i++) {
-      if (combo >= COMBO_TIERS[i].need) t = i;
-    }
-    return t;
+  function fireLevelForCombo(combo) {
+    return Math.floor(Math.max(0, combo) / 5);
   }
 
   function getTier(lane) {
-    return COMBO_TIERS[lane.tier];
+    const level = lane.fireLevel || 0;
+    const idx = Math.min(FIRE_FORMS.length - 1, Math.max(0, level));
+    const base = FIRE_FORMS[idx];
+    const extra = Math.max(0, level - (FIRE_FORMS.length - 1));
+    if (!extra) return base;
+    return {
+      ...base,
+      pierce: base.pierce + extra,
+      width: Math.min(18, base.width + extra * 0.5)
+    };
+  }
+
+  function enemyCapFromPressure(pressure) {
+    const base = difficultyParams().maxEnemies;
+    const bonus = Math.min(ENEMY_CAP_MAX - base, Math.floor(Math.max(0, pressure || 0) / 2));
+    return base + bonus;
+  }
+
+  function spawnIntervalFromPressure(lane) {
+    const p = difficultyParams();
+    const pressure = lane.pressure || 0;
+    const shrink = Math.min(p.spawnGap * 0.55, pressure * 0.045);
+    let gap = Math.max(0.5, p.spawnGap - shrink);
+    const alive = lane.enemies.filter(e => e.alive).length;
+    const deficit = enemyCapFromPressure(pressure) - alive;
+    if (deficit >= 4) gap *= 0.45;
+    else if (deficit >= 2) gap *= 0.72;
+    return Math.max(0.36, gap);
+  }
+
+  function updatePressure(lane, dt) {
+    const target = lane.combo || 0;
+    if (lane.pressure == null) lane.pressure = 0;
+    if (target >= lane.pressure) lane.pressure = target;
+    else lane.pressure = Math.max(target, lane.pressure - dt * 2.4);
   }
 
   function startGame() {
@@ -1385,6 +1457,10 @@
             <div class="streak-flash" data-flash></div>
           </div>
           <div class="float-msg-layer" data-floats></div>
+          <div class="powerup-banner" data-powerup>
+            <div class="powerup-title" data-powerup-title></div>
+            <div class="powerup-sub" data-powerup-sub></div>
+          </div>
           <div class="float-transform" data-transform>變身！</div>
           <div class="buff-pills" data-buffs></div>
           <div class="power-slot" data-powers></div>
@@ -1426,6 +1502,8 @@
         combo: 0,
         maxCombo: 0,
         tier: 0,
+        fireLevel: 0,
+        pressure: 0,
         powerTimer: 4 + i * 2.5,
         pendingPower: null,
         buffDouble: 0,
@@ -1568,9 +1646,40 @@
     setTimeout(() => { try { el.remove(); } catch (e) {} }, 1300);
   }
 
+  function showFireLevelUp(lane) {
+    const form = getTier(lane);
+    const level = lane.fireLevel || 0;
+    lane.el.style.setProperty('--tier-color', form.jetColor || lane.color);
+    const banner = lane.el.querySelector('[data-powerup]');
+    if (banner) {
+      const title = banner.querySelector('[data-powerup-title]');
+      const sub = banner.querySelector('[data-powerup-sub]');
+      if (title) title.textContent = `火力升級 Lv.${level}!`;
+      if (sub) sub.textContent = form.name;
+      banner.classList.remove('show');
+      void banner.offsetWidth;
+      banner.classList.add('show');
+    }
+    lane.el.classList.remove('shake-1', 'shake-2', 'shake-3');
+    void lane.el.offsetWidth;
+    lane.el.classList.add('shake-3');
+    const flash = lane.el.querySelector('[data-flash]');
+    if (flash) {
+      flash.className = 'streak-flash levelup';
+      void flash.offsetWidth;
+      flash.classList.add('go');
+    }
+    lane.transformFlash = 1.15;
+    updateBuffUI(lane);
+  }
+
   function celebrateCombo(lane) {
+    if (lane.combo > 0 && lane.combo % 5 === 0) {
+      showFireLevelUp(lane);
+      return;
+    }
     if (lane.combo < 3) return;
-    const level = lane.combo >= 8 ? 3 : lane.combo >= 5 ? 2 : 1;
+    const level = Math.min(3, Math.max(1, lane.fireLevel || 1));
     const el = lane.el;
     el.classList.remove('shake-1', 'shake-2', 'shake-3');
     void el.offsetWidth;
@@ -1583,9 +1692,7 @@
     }
     const flair = el.querySelector('[data-flair]');
     if (flair) {
-      const tier = getTier(lane);
-      const tierHit = tier.name && lane.combo === tier.need;
-      flair.textContent = tierHit ? `連擊 ×${lane.combo}　${tier.name}！` : `連擊 ×${lane.combo}！`;
+      flair.textContent = `連擊 ×${lane.combo}！`;
       flair.className = 'combo-flair lv' + level;
       void flair.offsetWidth;
       flair.classList.add('show');
@@ -1613,8 +1720,8 @@
     const el = lane.el.querySelector('[data-combo]');
     el.textContent = lane.combo > 0 ? `連擊${lane.combo}` : '連擊0';
     el.classList.remove('hot', 'super');
-    if (lane.tier >= 3) el.classList.add('super');
-    else if (lane.tier >= 1) el.classList.add('hot');
+    if ((lane.fireLevel || 0) >= 3) el.classList.add('super');
+    else if ((lane.fireLevel || 0) >= 1) el.classList.add('hot');
   }
 
   function updateBuffUI(lane) {
@@ -1623,7 +1730,10 @@
     if (lane.buffDouble > 0) bits.push(`<span class="buff-pill on">⚡雙激光 ${Math.ceil(lane.buffDouble)}s</span>`);
     if (lane.buffSlow > 0) bits.push(`<span class="buff-pill on">🐢慢動作 ${Math.ceil(lane.buffSlow)}s</span>`);
     if (lane.shield > 0) bits.push(`<span class="buff-pill on">🛡️護盾×${lane.shield}</span>`);
-    if (lane.tier >= 1) bits.push(`<span class="buff-pill on">🚀${getTier(lane).name}</span>`);
+    if ((lane.fireLevel || 0) >= 1) {
+      const form = getTier(lane);
+      bits.push(`<span class="buff-pill on">🔥火力 Lv.${lane.fireLevel} ${form.name}</span>`);
+    }
     box.innerHTML = bits.join('');
   }
 
@@ -1637,23 +1747,27 @@
   }
 
   function resetCombo(lane) {
-    const prev = lane.tier;
+    const prev = lane.fireLevel || 0;
     lane.combo = 0;
+    lane.fireLevel = 0;
     lane.tier = 0;
     updateComboUI(lane);
     if (prev > 0) updateBuffUI(lane);
   }
 
   function bumpCombo(lane) {
-    const prevTier = lane.tier;
     lane.combo += 1;
     if (lane.combo > lane.maxCombo) lane.maxCombo = lane.combo;
-    lane.tier = comboTierIndex(lane.combo);
+    lane.fireLevel = fireLevelForCombo(lane.combo);
+    lane.tier = Math.min(FIRE_FORMS.length - 1, lane.fireLevel);
+    lane.pressure = Math.max(lane.pressure || 0, lane.combo);
     updateComboUI(lane);
-    if (lane.tier > prevTier) {
-      const t = getTier(lane);
-      showTransform(lane, `變身！${t.name}`);
-      updateBuffUI(lane);
+    const alive = lane.enemies.filter(e => e.alive).length;
+    const room = enemyCapFromPressure(lane.pressure) - alive;
+    if (room > 0) lane.spawnTimer = Math.min(lane.spawnTimer, 0.12);
+    if (lane.combo % 5 === 0 && room > 0) {
+      const burst = Math.min(2, room);
+      for (let n = 0; n < burst; n++) spawnEnemy(lane);
     }
   }
 
@@ -1888,28 +2002,49 @@
     // If no enemy, still fire after a short aim pause from current spot
   }
 
+  function shotOffsets(multi, ox) {
+    if (multi <= 1) return [0];
+    if (multi === 2) return [-ox, ox];
+    if (multi === 3) return [-ox * 1.75, 0, ox * 1.75];
+    if (multi === 4) return [-ox * 2.15, -ox * 0.7, ox * 0.7, ox * 2.15];
+    const mid = (multi - 1) / 2;
+    const out = [];
+    for (let i = 0; i < multi; i++) out.push((i - mid) * ox * 0.95);
+    return out;
+  }
+
   function fireLaser(lane) {
     const tier = getTier(lane);
-    const double = lane.buffDouble > 0;
-    const multi = Math.max(tier.multi, double ? 2 : 1);
+    const extra = lane.buffDouble > 0 ? 1 : 0;
+    const multi = Math.min(5, tier.multi + extra);
     const targets = nearestEnemies(lane, multi);
     const jetS = (lane.jetBaseScale || 0.15) * (tier.scale || 1);
-    const ox = Math.max(5, (lane.h || 300) * 0.016);
-    const offsetsPx = multi === 1 ? [0] : multi === 2 ? [-ox, ox] : [-ox * 1.5, 0, ox * 1.5];
-    const blastR = tier.blast > 0 ? Math.max(12, (lane.h || 300) * 0.055) : 0;
+    const ox = Math.max(16, (lane.h || 300) * 0.042);
+    const offsets = shotOffsets(multi, ox);
+    const h = lane.h || 300;
+    const blastR = tier.blast > 0 ? Math.max(16, h * tier.blast) : 0;
+    const center = Math.floor((multi - 1) / 2);
+    const color = tier.jetColor || lane.color;
 
     for (let i = 0; i < multi; i++) {
-      const target = targets[i] || targets[0] || null;
+      const off = offsets[i] || 0;
+      const isCenter = i === center;
+      const isBeam = !!tier.beam && (multi === 1 || isCenter);
+      const spread = tier.spread || 0;
+      const vx = spread && !isBeam ? (off / ox) * 150 * spread : 0;
+      const home = isBeam || (spread && !isCenter) ? null : (targets[i] || targets[0] || null);
       lane.lasers.push({
-        x: lane.jetX + (offsetsPx[i] || 0),
+        x: lane.jetX + off,
         y: lane.jetY - Math.max(6, jetS * 16),
-        target,
+        target: home,
         vy: -tier.speed,
-        width: Math.max(2, tier.width * 0.65),
-        pierce: tier.pierce,
+        vx,
+        width: isBeam ? tier.width : Math.max(3.4, tier.width * 0.95),
+        pierce: isBeam ? tier.pierce + extra : Math.max(1, tier.pierce),
         pierced: 0,
-        blast: blastR,
-        color: tier.jetColor || lane.color,
+        blast: isCenter ? blastR : 0,
+        color,
+        beam: isBeam,
         alive: true
       });
     }
@@ -1918,10 +2053,10 @@
       lane.blasts.push({
         x: targets[0].x,
         y: targets[0].y,
-        r: 3,
+        r: 4,
         maxR: blastR,
         life: 0.35,
-        color: tier.jetColor || lane.color
+        color
       });
       for (const e of lane.enemies) {
         if (!e.alive) continue;
@@ -1932,7 +2067,8 @@
 
   function spawnEnemy(lane) {
     const p = difficultyParams();
-    if (lane.enemies.filter(e => e.alive).length >= p.maxEnemies) return;
+    const cap = enemyCapFromPressure(lane.pressure);
+    if (lane.enemies.filter(e => e.alive).length >= cap) return;
     const type = ENEMY_TYPES[randInt(0, ENEMY_TYPES.length - 1)];
     const er = lane.enemyR || Math.max(3, (lane.h || 300) * ENEMY_R_FRAC);
     const margin = Math.max(14, er * 3);
@@ -2112,6 +2248,7 @@
   function updateLane(lane, dt) {
     lane.jetBob += dt * 3;
     if (lane.transformFlash > 0) lane.transformFlash -= dt;
+    updatePressure(lane, dt);
 
     // Aim → slide under target → fire → ease back to center
     if (lane.aim) {
@@ -2146,7 +2283,9 @@
             lane.jetX = clampX(aim.target.x);
           }
           fireLaser(lane);
-          showFloatMsg(lane, lane.combo >= 3 ? `開火！連擊×${lane.combo}` : '開火！', 'ok');
+          if (lane.combo % 5 !== 0) {
+            showFloatMsg(lane, lane.combo >= 3 ? `開火！連擊×${lane.combo}` : '開火！', 'ok');
+          }
           aim.returning = true;
           aim.returnT = 0;
           aim.returnFrom = lane.jetX;
@@ -2210,8 +2349,9 @@
     lane.spawnTimer -= dt;
     if (lane.spawnTimer <= 0) {
       spawnEnemy(lane);
-      const p = difficultyParams();
-      lane.spawnTimer = p.spawnGap * (0.75 + Math.random() * 0.5);
+      const room = enemyCapFromPressure(lane.pressure) - lane.enemies.filter(e => e.alive).length;
+      if (room >= 3) spawnEnemy(lane);
+      lane.spawnTimer = spawnIntervalFromPressure(lane) * (0.85 + Math.random() * 0.3);
     }
 
     const slowMul = lane.buffSlow > 0 ? 0.4 : 1;
@@ -2238,8 +2378,13 @@
     for (const L of lane.lasers) {
       if (!L.alive) continue;
       L.y += L.vy * dt;
+      L.x += (L.vx || 0) * dt;
+      if (L.x < -40 || L.x > lane.w + 40) {
+        L.alive = false;
+        continue;
+      }
 
-      if (L.target && L.target.alive) {
+      if (L.target && L.target.alive && !L.beam) {
         const dx = L.target.x - L.x;
         L.x += Math.sign(dx) * Math.min(Math.abs(dx), 260 * dt);
       }
@@ -2248,7 +2393,8 @@
       for (const e of lane.enemies) {
         if (!e.alive) continue;
         const hitPad = Math.max(8, L.width);
-        if (Math.abs(e.x - L.x) < e.r + hitPad && L.y <= e.y + e.r && L.y >= e.y - e.r - 50) {
+        const yReach = L.beam ? e.r + Math.max(28, (lane.h || 300) * 0.08) : e.r + 50;
+        if (Math.abs(e.x - L.x) < e.r + hitPad && L.y <= e.y + e.r && L.y >= e.y - yReach) {
           hitList.push(e);
         }
       }
@@ -2256,25 +2402,27 @@
       hitList.sort((a, b) => b.y - a.y);
 
       if (hitList.length) {
-        const e = hitList[0];
-        destroyEnemy(lane, e);
-        L.pierced += 1;
-        if (L.blast > 0) {
-          lane.blasts.push({
-            x: e.x, y: e.y, r: 6, maxR: L.blast * 0.7, life: 0.28, color: L.color
-          });
-          for (const o of lane.enemies) {
-            if (!o.alive || o === e) continue;
-            if (Math.hypot(o.x - e.x, o.y - e.y) <= L.blast * 0.7) destroyEnemy(lane, o);
+        const room = Math.max(1, L.pierce - L.pierced);
+        const victims = (L.beam ? hitList : hitList.slice(0, 1)).slice(0, room);
+        for (const e of victims) {
+          destroyEnemy(lane, e);
+          L.pierced += 1;
+          if (L.blast > 0) {
+            lane.blasts.push({
+              x: e.x, y: e.y, r: 6, maxR: L.blast * 0.85, life: 0.28, color: L.color
+            });
+            for (const o of lane.enemies) {
+              if (!o.alive || o === e) continue;
+              if (Math.hypot(o.x - e.x, o.y - e.y) <= L.blast * 0.85) destroyEnemy(lane, o);
+            }
           }
         }
         if (L.pierced >= L.pierce) {
           L.alive = false;
         } else {
-          // continue upward; clear target so it can hit next
           L.target = null;
         }
-      } else if (L.y < -50) {
+      } else if (L.y < (L.beam ? -((lane.h || 300) * 0.4) : -50)) {
         L.alive = false;
       }
     }
@@ -2301,6 +2449,14 @@
         s.y = -2;
         s.x = Math.random() * lane.w;
       }
+    }
+
+    if (DEBUG_SPAWN) {
+      lane.el.dataset.combo = String(lane.combo);
+      lane.el.dataset.fire = String(lane.fireLevel || 0);
+      lane.el.dataset.pressure = (lane.pressure || 0).toFixed(2);
+      lane.el.dataset.cap = String(enemyCapFromPressure(lane.pressure));
+      lane.el.dataset.alive = String(lane.enemies.filter(e => e.alive).length);
     }
   }
 
@@ -2385,20 +2541,24 @@
       ctx.restore();
     }
 
-    // lasers — bright core + thin colored edge (minimal blur)
+    // lasers — bolts stay short; beams are long, bright columns
     for (const L of lane.lasers) {
       if (!L.alive) continue;
-      const len = Math.max(14, (lane.h || 300) * 0.045) + L.width * 2;
+      const len = L.beam
+        ? Math.max(96, (lane.h || 300) * (L.width >= 13 ? 0.48 : 0.36))
+        : Math.max(18, (lane.h || 300) * 0.075) + L.width * 2;
       const col = L.color || lane.color;
+      const outer = L.beam ? Math.max(7, L.width * 0.85) : (L.width || 3) + 1.5;
+      const core = L.beam ? Math.max(2.4, outer * 0.38) : Math.max(1.3, (L.width || 3) * 0.5);
       ctx.lineCap = 'round';
       ctx.strokeStyle = col;
-      ctx.lineWidth = (L.width || 3) + 1.5;
+      ctx.lineWidth = outer;
       ctx.beginPath();
       ctx.moveTo(L.x, L.y + len);
       ctx.lineTo(L.x, L.y);
       ctx.stroke();
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(1.2, (L.width || 3) * 0.55);
+      ctx.lineWidth = core;
       ctx.beginPath();
       ctx.moveTo(L.x, L.y + len);
       ctx.lineTo(L.x, L.y);
@@ -2447,35 +2607,77 @@
       jetColor,
       false,
       (lane.jetBaseScale || 0.15) * (tier.scale || 1),
-      lane.tier,
+      lane.fireLevel || 0,
       lane.shield > 0,
       lane.transformFlash > 0,
       lane.jetAngle || 0
     );
   }
 
-  function drawJet(ctx, x, y, color, dead, scale, tier, hasShield, transforming, angle) {
+  function drawJet(ctx, x, y, color, dead, scale, form, hasShield, transforming, angle) {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle || 0);
-    // `scale` already = (canvasH * JET_H_FRAC / JET_DRAW_H) * combo tier
+    // `scale` already = (canvasH * JET_H_FRAC / JET_DRAW_H) * firepower form
     const s = scale || 0.15;
     ctx.scale(s, s);
     if (dead) ctx.globalAlpha = 0.35;
+    const f = Math.max(0, Math.min(4, form || 0));
 
-    // Thin crisp aura (outline ring, not soft bloom)
-    if (tier >= 1) {
+    if (f >= 1) {
       ctx.beginPath();
       ctx.strokeStyle = color;
-      ctx.lineWidth = 1.8;
-      ctx.ellipse(0, 0, 14 + tier * 2, 16 + tier * 2, 0, 0, Math.PI * 2);
+      ctx.lineWidth = 1.7 + f * 0.2;
+      ctx.ellipse(0, 1, 13 + f * 1.5, 16 + f * 1.2, 0, 0, Math.PI * 2);
       ctx.stroke();
+    }
+    if (f >= 2) {
+      ctx.beginPath();
+      ctx.fillStyle = color;
+      ctx.moveTo(-7, 1);
+      ctx.lineTo(-20, 9);
+      ctx.lineTo(-6, 7);
+      ctx.closePath();
+      ctx.moveTo(7, 1);
+      ctx.lineTo(20, 9);
+      ctx.lineTo(6, 7);
+      ctx.closePath();
+      ctx.fill();
+      ctx.lineWidth = 1.1;
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+    }
+    if (f === 1) {
+      ctx.fillStyle = '#fff7ea';
+      ctx.fillRect(-16, 2, 5, 3.2);
+      ctx.fillRect(11, 2, 5, 3.2);
+    }
+    if (f === 3) {
+      ctx.fillStyle = '#f4fdff';
+      ctx.fillRect(-1.7, -30, 3.4, 14);
+      ctx.fillStyle = color;
+      ctx.fillRect(-2.6, -27, 5.2, 3.2);
+    }
+    if (f >= 4) {
+      ctx.fillStyle = '#ffd166';
+      ctx.beginPath();
+      ctx.moveTo(0, -27);
+      ctx.lineTo(3.4, -16);
+      ctx.lineTo(-3.4, -16);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.fillRect(-18, 0, 5, 3);
+      ctx.fillRect(13, 0, 5, 3);
     }
     if (transforming) {
       ctx.beginPath();
       ctx.strokeStyle = '#ffd166';
       ctx.lineWidth = 2;
-      ctx.arc(0, 0, 20, 0, Math.PI * 2);
+      ctx.arc(0, 0, 18 + f, 0, Math.PI * 2);
       ctx.stroke();
     }
     if (hasShield) {
@@ -2511,21 +2713,10 @@
     ctx.strokeStyle = '#ffffff';
     ctx.stroke();
 
-    if (tier >= 2) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(-14, 3, 6, 2.5);
-      ctx.fillRect(8, 3, 6, 2.5);
-    }
-    if (tier >= 3) {
-      ctx.fillStyle = '#ffd166';
-      ctx.beginPath();
-      ctx.moveTo(0, -22);
-      ctx.lineTo(2.5, -15);
-      ctx.lineTo(-2.5, -15);
-      ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+    if (f >= 2) {
+      ctx.fillStyle = f >= 4 ? '#ffd166' : '#ffffff';
+      ctx.fillRect(-13, 4, 4, 2.4);
+      ctx.fillRect(9, 4, 4, 2.4);
     }
 
     ctx.beginPath();
