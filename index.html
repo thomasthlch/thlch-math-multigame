@@ -316,9 +316,16 @@
     font-size: .85rem;
     font-weight: 800;
     flex-shrink: 0;
+    flex-wrap: nowrap;
   }
-  .lane-score { color: var(--warn); }
-  .lane-hits { color: var(--muted); font-size: .75rem; font-weight: 700; }
+  .lane-score {
+    color: #ffe98a;
+    font-size: clamp(1.15rem, 2vw, 1.55rem);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 10px rgba(255, 209, 102, .75);
+    white-space: nowrap;
+  }
+  .lane-hits { color: var(--muted); font-size: .75rem; font-weight: 700; white-space: nowrap; }
 
   .lane-canvas-wrap {
     position: relative;
@@ -406,8 +413,86 @@
     flex-shrink: 0;
   }
   @media (min-width: 1400px) {
-    .lane-answers { grid-template-columns: repeat(4, 1fr); }
+    .lane-answers.cols-4 { grid-template-columns: repeat(4, 1fr); }
   }
+  .lane-answers.cols-6 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Keypad lives in the lower answer slot — does not sit on the canvas */
+  .lane-answers.is-keypad {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 3px 6px 6px;
+    touch-action: none;
+  }
+  .keypad-readout {
+    grid-column: 1 / -1;
+    min-height: clamp(40px, 4.4vh, 54px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 3px solid rgba(79, 209, 255, .75);
+    background: #050a16;
+    color: #fff;
+    font-weight: 900;
+    font-size: clamp(1.7rem, 3.2vw, 2.5rem);
+    letter-spacing: .16em;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 14px rgba(79, 209, 255, .55);
+    line-height: 1;
+  }
+  .lane[data-lane="1"] .keypad-readout { border-color: rgba(167, 139, 250, .8); text-shadow: 0 0 14px rgba(167, 139, 250, .5); }
+  .lane[data-lane="2"] .keypad-readout { border-color: rgba(52, 211, 153, .8); text-shadow: 0 0 14px rgba(52, 211, 153, .5); }
+  .keypad-readout.empty {
+    color: var(--muted);
+    letter-spacing: .04em;
+    font-size: clamp(1rem, 1.8vw, 1.25rem);
+    text-shadow: none;
+    font-weight: 800;
+  }
+  .keypad-readout.pop { animation: readoutPop .16s ease; }
+  .keypad-readout.correct {
+    color: var(--ok);
+    border-color: var(--ok);
+    text-shadow: 0 0 14px rgba(61, 220, 151, .7);
+  }
+  .keypad-readout.wrong {
+    color: #ddd6fe;
+    border-color: rgba(167, 139, 250, .7);
+  }
+  @keyframes readoutPop {
+    from { transform: scale(.92); }
+    to { transform: scale(1); }
+  }
+  .key-btn {
+    appearance: none;
+    background: #0b1328;
+    border: 3px solid var(--line);
+    color: var(--text);
+    border-radius: 10px;
+    min-height: clamp(42px, 4.8vh, 58px);
+    padding: 4px 2px;
+    font-size: clamp(1.25rem, 2.3vw, 1.75rem);
+    font-weight: 900;
+    font-family: inherit;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .key-btn.is-down { transform: scale(.94); background: rgba(79, 209, 255, .22); border-color: var(--accent); }
+  .key-btn:disabled { opacity: .55; cursor: default; }
+  .key-del { color: #ffd166; font-size: clamp(1.05rem, 1.7vw, 1.35rem); }
+  .key-ok {
+    color: #081018;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-color: transparent;
+    font-size: clamp(1rem, 1.6vw, 1.3rem);
+  }
+  .lane[data-lane="1"] .key-btn.is-down { background: rgba(167, 139, 250, .25); border-color: var(--lane2); }
+  .lane[data-lane="2"] .key-btn.is-down { background: rgba(52, 211, 153, .22); border-color: var(--lane3); }
 
   .ans-btn {
     background: #0b1328;
@@ -453,8 +538,43 @@
     background: linear-gradient(90deg, rgba(255,209,102,.12), transparent);
   }
   .rank { font-size: 1.5rem; width: 40px; text-align: center; }
-  .podium-item .pname { flex: 1; font-size: 1.15rem; font-weight: 800; }
+  .podium-item .pname { flex: 1; font-size: 1.35rem; font-weight: 800; }
   .podium-item .pscore { font-size: 1.35rem; font-weight: 900; color: var(--accent); }
+  .podium-item.gold {
+    padding: 18px 18px;
+    animation: winnerIn .7s cubic-bezier(.2, 1.4, .4, 1);
+    box-shadow: 0 0 28px rgba(255, 209, 102, .45), inset 0 0 24px rgba(255, 209, 102, .08);
+  }
+  .podium-item.gold .rank { font-size: 2.6rem; }
+  .podium-item.gold .pname { font-size: clamp(1.8rem, 3vw, 2.4rem); color: #ffe98a; }
+  .podium-item.gold .pscore-num {
+    display: inline-block;
+    font-size: clamp(2.8rem, 5vw, 6rem);
+    color: #ffe98a;
+    text-shadow: 0 0 16px rgba(255, 209, 102, .85), 0 3px 0 #6b3a00;
+    line-height: 1;
+    margin-right: 4px;
+  }
+  .winner-tag {
+    font-size: .95rem;
+    font-weight: 900;
+    letter-spacing: .14em;
+    color: #1a1203;
+    background: linear-gradient(135deg, #ffe98a, #ffb703);
+    border-radius: 999px;
+    padding: 4px 10px;
+  }
+  #screen-result .card { max-width: 980px; }
+  #screen-result h1 { font-size: clamp(2rem, 4vw, 3rem); }
+  @keyframes winnerIn {
+    0% { transform: scale(.82); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .podium-item.place-2, .podium-item.place-3 {
+    animation: winnerIn .55s ease backwards;
+  }
+  .podium-item.place-2 { animation-delay: .28s; }
+  .podium-item.place-3 { animation-delay: .42s; }
 
   .confetti {
     position: fixed;
@@ -558,7 +678,8 @@
   .buff-pills {
     position: absolute;
     left: 50%;
-    top: 6px;
+    top: auto;
+    bottom: 52px;
     transform: translateX(-50%);
     z-index: 7;
     display: flex;
@@ -605,6 +726,226 @@
     100% { opacity: 0; transform: translate(-50%, -80%) scale(1); }
   }
 
+  /* Score spectacle is an overlay: it must not change canvas flex height */
+  .score-fx {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .score-hero {
+    position: absolute;
+    top: 8px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    pointer-events: none;
+  }
+  .score-hero-bg {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+    padding: 2px 16px 6px;
+    border-radius: 18px;
+    background: rgba(6, 10, 22, .48);
+    border: 2px solid rgba(255, 209, 102, .42);
+    box-shadow: 0 0 18px rgba(255, 190, 60, .28);
+  }
+  .score-glow-num {
+    display: inline-block;
+    font-size: clamp(2.8rem, 5.6vw, 7rem);
+    font-weight: 900;
+    line-height: .9;
+    color: #ffe98a;
+    font-variant-numeric: tabular-nums;
+    text-shadow:
+      0 0 8px rgba(255, 230, 140, .95),
+      0 0 20px rgba(255, 176, 46, .85),
+      0 0 36px rgba(255, 120, 40, .45),
+      0 3px 0 #6b3a00;
+    transform-origin: center center;
+  }
+  .score-unit {
+    font-size: clamp(1rem, 1.7vw, 1.45rem);
+    font-weight: 900;
+    color: #ffd166;
+  }
+  .score-glow-num.bump { animation: scoreBump .48s cubic-bezier(.2, 1.55, .35, 1); }
+  .score-glow-num.dip { animation: scoreDip .35s ease; }
+  @keyframes scoreBump {
+    0% { transform: scale(1); filter: brightness(1); }
+    35% { transform: scale(1.28); filter: brightness(1.5); }
+    100% { transform: scale(1); filter: brightness(1); }
+  }
+  @keyframes scoreDip {
+    0% { transform: scale(1); color: #ffe98a; }
+    40% { transform: scale(.9); color: #ff8b98; }
+    100% { transform: scale(1); color: #ffe98a; }
+  }
+  .gain-pop-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .gain-pop {
+    position: absolute;
+    left: 50%;
+    top: 16%;
+    font-weight: 900;
+    font-size: clamp(3rem, 7vw, 8rem);
+    letter-spacing: .02em;
+    white-space: nowrap;
+    animation: gainPop .95s cubic-bezier(.15, .8, .3, 1) forwards;
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .gain-pop.plus {
+    color: #fff8d6;
+    text-shadow:
+      0 0 12px #ffd166,
+      0 0 28px #ff9f43,
+      0 4px 0 #7a3e00;
+  }
+  .gain-pop.minus {
+    color: #ffd0d6;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    text-shadow: 0 0 12px #ff6b7a, 0 3px 0 #5a2030;
+  }
+  @keyframes gainPop {
+    0% { opacity: 0; transform: translate(-50%, 12px) scale(.4); }
+    22% { opacity: 1; transform: translate(-50%, -6px) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -78px) scale(1); }
+  }
+  .combo-flair {
+    position: absolute;
+    left: 50%;
+    top: 30%;
+    transform: translate(-50%, -50%);
+    font-size: clamp(1.8rem, 4.2vw, 5rem);
+    font-weight: 900;
+    color: #fff6c2;
+    text-shadow: 0 0 16px #ff9f43, 0 3px 0 #6a2a00;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    max-width: 96%;
+  }
+  .combo-flair.show { animation: flairPop .9s ease forwards; }
+  .combo-flair.lv3 { color: #ffe0e4; text-shadow: 0 0 16px #ff6b7a, 0 3px 0 #5a1020; }
+  @keyframes flairPop {
+    0% { opacity: 0; transform: translate(-50%, -40%) scale(.45); }
+    18% { opacity: 1; transform: translate(-50%, -50%) scale(1.16); }
+    68% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -72%) scale(.96); }
+  }
+  .streak-flash {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background: radial-gradient(circle at 50% 28%, rgba(255, 209, 102, .55), transparent 62%);
+    pointer-events: none;
+  }
+  .streak-flash.lv2 { background: radial-gradient(circle at 50% 28%, rgba(255, 159, 67, .6), transparent 64%); }
+  .streak-flash.lv3 { background: radial-gradient(circle at 50% 28%, rgba(255, 107, 122, .62), transparent 66%); }
+  .streak-flash.go { animation: streakFlash .5s ease; }
+  @keyframes streakFlash {
+    0% { opacity: 0; }
+    28% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .lane.shake-1 { animation: comboShake .42s ease; }
+  .lane.shake-2 { animation: comboShake .5s ease; }
+  .lane.shake-3 { animation: comboShakeHard .58s ease; }
+  @keyframes comboShake {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    15% { transform: translate3d(-7px, 0, 0); }
+    30% { transform: translate3d(7px, 0, 0); }
+    45% { transform: translate3d(-5px, 0, 0); }
+    60% { transform: translate3d(5px, 0, 0); }
+    75% { transform: translate3d(-2px, 0, 0); }
+  }
+  @keyframes comboShakeHard {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    12% { transform: translate3d(-12px, 2px, 0); }
+    28% { transform: translate3d(11px, -2px, 0); }
+    44% { transform: translate3d(-8px, 1px, 0); }
+    60% { transform: translate3d(8px, -1px, 0); }
+    76% { transform: translate3d(-4px, 0, 0); }
+  }
+
+  .reveal-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 180;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: 28px 20px;
+    background: rgba(4, 8, 18, .82);
+    pointer-events: auto;
+  }
+  .reveal-layer.hidden { display: none; }
+  .reveal-title {
+    font-size: clamp(2.2rem, 5vw, 4rem);
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-shadow: 0 0 18px rgba(79, 209, 255, .55);
+  }
+  .reveal-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    width: min(1400px, 96vw);
+  }
+  .reveal-card {
+    background: rgba(11, 19, 40, .92);
+    border: 3px solid var(--line);
+    border-radius: 18px;
+    padding: 18px 12px 16px;
+    text-align: center;
+    animation: winnerIn .55s cubic-bezier(.2, 1.3, .4, 1) backwards;
+  }
+  .reveal-card.winner {
+    border-color: #ffd166;
+    background: linear-gradient(180deg, rgba(255, 209, 102, .22), rgba(11, 19, 40, .92));
+    box-shadow: 0 0 36px rgba(255, 209, 102, .55);
+    transform: scale(1.06);
+    animation: winnerPulse .7s cubic-bezier(.2, 1.4, .4, 1) backwards, winnerGlow 1s ease-in-out infinite alternate;
+  }
+  .reveal-rank {
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    font-weight: 900;
+    color: var(--muted);
+    letter-spacing: .12em;
+  }
+  .reveal-card.winner .reveal-rank { color: #ffe98a; font-size: clamp(1.4rem, 2.4vw, 2rem); }
+  .reveal-name {
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    font-weight: 900;
+    margin: 6px 0;
+  }
+  .reveal-score {
+    font-size: clamp(3rem, 5.5vw, 6rem);
+    font-weight: 900;
+    color: #ffe98a;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 16px rgba(255, 209, 102, .8), 0 3px 0 #6b3a00;
+    line-height: 1;
+  }
+  .reveal-card.winner .reveal-score { font-size: clamp(3.8rem, 7.2vw, 7.5rem); }
+  @keyframes winnerPulse {
+    0% { transform: scale(.8); opacity: 0; }
+    100% { transform: scale(1.06); opacity: 1; }
+  }
+  @keyframes winnerGlow {
+    from { box-shadow: 0 0 18px rgba(255, 209, 102, .35); }
+    to { box-shadow: 0 0 42px rgba(255, 209, 102, .75); }
+  }
 
   @media (max-width: 720px) {
     .lanes { grid-template-columns: 1fr; }
@@ -633,11 +974,20 @@
         </div>
 
         <div class="field">
-          <label>難度（影響敵人下落速度）</label>
+          <label>題目範圍（乘數同下落速度）</label>
           <div class="seg" id="difficulty-seg">
             <button type="button" data-d="easy">簡單<br><small style="font-weight:600;opacity:.8">1–5 · 慢</small></button>
             <button type="button" data-d="normal" class="active">普通<br><small style="font-weight:600;opacity:.8">1–9</small></button>
             <button type="button" data-d="challenge">挑戰<br><small style="font-weight:600;opacity:.8">含0 · 快</small></button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>答題難度</label>
+          <div class="seg" id="answer-mode-seg">
+            <button type="button" data-m="easy" class="active">簡單<br><small style="font-weight:600;opacity:.8">四選一</small></button>
+            <button type="button" data-m="advanced">進階<br><small style="font-weight:600;opacity:.8">六選一 · 更似</small></button>
+            <button type="button" data-m="challenge">挑戰<br><small style="font-weight:600;opacity:.8">九宮格輸入</small></button>
           </div>
         </div>
 
@@ -661,14 +1011,14 @@
       </div>
 
       <button class="btn btn-primary" id="btn-start">🚀 開始遊戲</button>
-      <p class="tip">玩法：敵人由上往下跌。答啱 → 瞄準開火得分（快答＋連擊有加成）。答錯只係溫柔提點、斷連擊，繼續玩。敵人逃走只扣少少分／斷連擊，唔會出局。倒數完一齊睇排行榜！</p>
+      <p class="tip">玩法：敵人由上往下跌。答啱 → 瞄準開火得分（快答＋連擊有加成）。答錯只係溫柔提點、斷連擊，繼續玩。敵人逃走只扣少少分／斷連擊，唔會出局。答題難度：簡單四選一、進階六個更接近嘅答案、挑戰每欄自己撳九宮格。倒數完一齊睇排行榜！</p>
     </div>
   </section>
 
   <!-- GAME -->
   <section id="screen-game" class="screen">
     <div class="game-top">
-      <span class="pill">計時賽 · 剩餘 <strong id="timer-label">90</strong> 秒 · 睇邊個分數最高！</span>
+      <span class="pill">計時賽 · <strong id="mode-label">簡單</strong> · 剩餘 <strong id="timer-label">90</strong> 秒 · 睇邊個分數最高！</span>
       <button class="btn btn-ghost" id="btn-quit" type="button">結束</button>
     </div>
 
@@ -693,6 +1043,7 @@
 </div>
 
 <div class="confetti" id="confetti" aria-hidden="true"></div>
+<div class="reveal-layer hidden" id="reveal-overlay" aria-live="polite"></div>
 
 <script>
 (function () {
@@ -730,6 +1081,7 @@
   const state = {
     names: [...DEFAULT_NAMES],
     difficulty: 'normal',
+    answerMode: 'easy',
     timeLimit: 90,
     lanes: [],
     running: false,
@@ -790,6 +1142,14 @@
     });
   });
 
+  document.querySelectorAll('#answer-mode-seg button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#answer-mode-seg button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.answerMode = btn.dataset.m;
+    });
+  });
+
   renderNameInputs();
 
   $('btn-start').addEventListener('click', startGame);
@@ -836,37 +1196,83 @@
     return randInt(p.min, p.max);
   }
 
+  function answerModeLabel() {
+    if (state.answerMode === 'advanced') return '進階';
+    if (state.answerMode === 'challenge') return '挑戰';
+    return '簡單';
+  }
+
   function makeQuestion() {
     const p = difficultyParams();
     let a = pickFactor(p);
     let b = pickFactor(p);
     if (Math.random() < 0.5) [a, b] = [b, a];
     const answer = a * b;
-    return { a, b, answer, choices: makeChoices(a, b, answer) };
+    const advanced = state.answerMode === 'advanced';
+    const count = advanced ? 6 : 4;
+    const choices = state.answerMode === 'challenge'
+      ? []
+      : makeChoices(a, b, answer, count, advanced);
+    return { a, b, answer, choices };
   }
 
-  function makeChoices(a, b, answer) {
+  function pushChoice(pool, seen, c) {
+    if (!Number.isInteger(c) || c < 0 || c > 100 || seen.has(c)) return;
+    seen.add(c);
+    pool.push(c);
+  }
+
+  function makeChoices(a, b, answer, count, plausibleOnly) {
+    const need = count || 4;
     const set = new Set([answer]);
-    const candidates = [
-      answer + 1, answer - 1, answer + 2, answer - 2,
-      answer + a, answer - a, answer + b, answer - b,
-      (a + 1) * b, Math.max(0, a - 1) * b,
-      a * (b + 1), a * Math.max(0, b - 1),
-      a + b, Math.abs(a - b)
-    ];
-    shuffle(candidates);
-    for (const c of candidates) {
-      if (Number.isInteger(c) && c >= 0 && c <= 100 && !set.has(c)) set.add(c);
-      if (set.size >= 4) break;
+    if (plausibleOnly) {
+      const pool = [];
+      const seen = new Set([answer]);
+      pushChoice(pool, seen, (a + 1) * b);
+      pushChoice(pool, seen, (a - 1) * b);
+      pushChoice(pool, seen, a * (b + 1));
+      pushChoice(pool, seen, a * (b - 1));
+      pushChoice(pool, seen, (a + 1) * (b + 1));
+      pushChoice(pool, seen, (a - 1) * (b - 1));
+      pushChoice(pool, seen, (a + 1) * Math.max(0, b - 1));
+      pushChoice(pool, seen, Math.max(0, a - 1) * (b + 1));
+      for (const d of [1, 2, 3, 4, 5, 10]) {
+        pushChoice(pool, seen, answer + d);
+        pushChoice(pool, seen, answer - d);
+      }
+      pushChoice(pool, seen, answer + a);
+      pushChoice(pool, seen, answer - a);
+      pushChoice(pool, seen, answer + b);
+      pushChoice(pool, seen, answer - b);
+      pool.sort((x, y) => Math.abs(x - answer) - Math.abs(y - answer));
+      const nearest = pool.slice(0, Math.max(need + 2, 8));
+      shuffle(nearest);
+      for (const c of nearest) {
+        set.add(c);
+        if (set.size >= need) break;
+      }
+    } else {
+      const candidates = [
+        answer + 1, answer - 1, answer + 2, answer - 2,
+        answer + a, answer - a, answer + b, answer - b,
+        (a + 1) * b, Math.max(0, a - 1) * b,
+        a * (b + 1), a * Math.max(0, b - 1),
+        a + b, Math.abs(a - b)
+      ];
+      shuffle(candidates);
+      for (const c of candidates) {
+        if (Number.isInteger(c) && c >= 0 && c <= 100 && !set.has(c)) set.add(c);
+        if (set.size >= need) break;
+      }
     }
     let n = 1;
-    while (set.size < 4) {
+    while (set.size < need && n < 40) {
       if (answer + n <= 100) set.add(answer + n);
-      if (set.size >= 4) break;
+      if (set.size >= need) break;
       if (answer - n >= 0) set.add(answer - n);
       n++;
     }
-    return shuffle([...set].slice(0, 4));
+    return shuffle([...set].slice(0, need));
   }
 
   function escapeHtml(s) {
@@ -899,8 +1305,16 @@
     state.ended = false;
     state.running = false;
     state.timerAcc = 0;
+    clearTimeout(state._revealTimer);
+    const reveal = $('reveal-overlay');
+    if (reveal) {
+      reveal.classList.add('hidden');
+      reveal.innerHTML = '';
+    }
 
     $('timer-label').textContent = String(Math.ceil(state.timeLeft));
+    const modeLabel = $('mode-label');
+    if (modeLabel) modeLabel.textContent = answerModeLabel();
 
     // Apply full-viewport game layout BEFORE measuring canvases
     showScreen('game');
@@ -955,6 +1369,14 @@
         </div>
         <div class="lane-canvas-wrap">
           <canvas></canvas>
+          <div class="score-fx" aria-hidden="true">
+            <div class="score-hero">
+              <span class="score-hero-bg"><span class="score-glow-num" data-heronum>0</span><span class="score-unit">分</span></span>
+            </div>
+            <div class="combo-flair" data-flair></div>
+            <div class="gain-pop-layer" data-gains></div>
+            <div class="streak-flash" data-flash></div>
+          </div>
           <div class="float-msg-layer" data-floats></div>
           <div class="float-transform" data-transform>變身！</div>
           <div class="buff-pills" data-buffs></div>
@@ -1002,7 +1424,8 @@
         buffDouble: 0,
         buffSlow: 0,
         shield: 0,
-        transformFlash: 0
+        transformFlash: 0,
+        entry: ''
       };
 
       resizeLaneCanvas(lane);
@@ -1090,10 +1513,76 @@
     }
   }
 
+  function setScoreText(lane, value) {
+    const s = String(value);
+    const hud = lane.el.querySelector('.score-num');
+    const hero = lane.el.querySelector('[data-heronum]');
+    if (hud) hud.textContent = s;
+    if (hero) hero.textContent = s;
+  }
+
   function updateScoreUI(lane) {
-    lane.el.querySelector('.score-num').textContent = String(lane.score);
+    setScoreText(lane, lane.score);
     const hits = lane.el.querySelector('.hits-num');
     if (hits) hits.textContent = String(lane.hits || 0);
+  }
+
+  function animateScoreTo(lane, from, to) {
+    if (lane._scoreRaf) cancelAnimationFrame(lane._scoreRaf);
+    const hero = lane.el.querySelector('[data-heronum]');
+    if (hero) {
+      hero.classList.remove('bump', 'dip');
+      void hero.offsetWidth;
+      hero.classList.add(to >= from ? 'bump' : 'dip');
+    }
+    const start = performance.now();
+    const dur = to > from ? 480 : 240;
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setScoreText(lane, Math.round(from + (to - from) * eased));
+      if (t < 1) lane._scoreRaf = requestAnimationFrame(step);
+      else {
+        lane._scoreRaf = 0;
+        setScoreText(lane, to);
+      }
+    };
+    lane._scoreRaf = requestAnimationFrame(step);
+  }
+
+  function showGainPopup(lane, gain) {
+    const layer = lane.el.querySelector('[data-gains]');
+    if (!layer) return;
+    const el = document.createElement('div');
+    const positive = gain >= 0;
+    el.className = 'gain-pop ' + (positive ? 'plus' : 'minus');
+    el.textContent = positive ? `+${gain}` : `−${Math.abs(gain)}`;
+    layer.appendChild(el);
+    setTimeout(() => { try { el.remove(); } catch (e) {} }, 1000);
+  }
+
+  function celebrateCombo(lane) {
+    if (lane.combo < 3) return;
+    const level = lane.combo >= 8 ? 3 : lane.combo >= 5 ? 2 : 1;
+    const el = lane.el;
+    el.classList.remove('shake-1', 'shake-2', 'shake-3');
+    void el.offsetWidth;
+    el.classList.add('shake-' + level);
+    const flash = el.querySelector('[data-flash]');
+    if (flash) {
+      flash.className = 'streak-flash lv' + level;
+      void flash.offsetWidth;
+      flash.classList.add('go');
+    }
+    const flair = el.querySelector('[data-flair]');
+    if (flair) {
+      const tier = getTier(lane);
+      const tierHit = tier.name && lane.combo === tier.need;
+      flair.textContent = tierHit ? `連擊 ×${lane.combo}　${tier.name}！` : `連擊 ×${lane.combo}！`;
+      flair.className = 'combo-flair lv' + level;
+      void flair.offsetWidth;
+      flair.classList.add('show');
+    }
   }
 
   function awardCorrect(lane) {
@@ -1103,9 +1592,13 @@
     const speedBonus = Math.max(0, Math.round(80 * (1 - Math.min(elapsed, 2.5) / 2.5)));
     const comboBonus = Math.min(120, lane.combo * 12);
     const gain = 100 + speedBonus + comboBonus;
+    const prev = lane.score;
     lane.score += gain;
     lane.hits += 1;
-    updateScoreUI(lane);
+    animateScoreTo(lane, prev, lane.score);
+    const hits = lane.el.querySelector('.hits-num');
+    if (hits) hits.textContent = String(lane.hits || 0);
+    showGainPopup(lane, gain);
     return { gain, speedBonus, comboBonus };
   }
 
@@ -1178,7 +1671,15 @@
   function renderAnswers(lane) {
     const box = lane.el.querySelector('.lane-answers');
     box.innerHTML = '';
+    box.className = 'lane-answers';
+    lane.entry = '';
     if (!lane.question) return;
+    if (state.answerMode === 'challenge') {
+      box.classList.add('is-keypad');
+      renderKeypad(lane, box);
+      return;
+    }
+    box.classList.add(state.answerMode === 'advanced' ? 'cols-6' : 'cols-4');
     lane.question.choices.forEach((c) => {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -1198,6 +1699,115 @@
     });
   }
 
+  function updateReadout(lane) {
+    const el = lane.el.querySelector('[data-readout]');
+    if (!el) return;
+    el.classList.remove('correct', 'wrong', 'pop');
+    if (!lane.entry) {
+      el.textContent = '輸入答案';
+      el.classList.add('empty');
+      return;
+    }
+    el.textContent = lane.entry;
+    el.classList.remove('empty');
+    void el.offsetWidth;
+    el.classList.add('pop');
+  }
+
+  function onKeypad(lane, key) {
+    if (!state.running || state.ended) return;
+    if (performance.now() < lane.lockUntil) return;
+    if (!lane.question) return;
+    if (key === 'del') {
+      lane.entry = lane.entry.slice(0, -1);
+      updateReadout(lane);
+      return;
+    }
+    if (key === 'ok') {
+      if (!lane.entry) {
+        showFloatMsg(lane, '先撳數字，再撳確定', 'soft');
+        return;
+      }
+      submitAnswer(lane, Number(lane.entry), null);
+      return;
+    }
+    if (lane.entry.length >= 3) return;
+    lane.entry += key;
+    updateReadout(lane);
+  }
+
+  // Each key tracks its own pointer so three lanes (and several fingers) stay independent.
+  function bindKeyPress(btn, action) {
+    let activePointer = null;
+    let ignoreClickUntil = 0;
+    const fire = () => {
+      if (btn.disabled) return;
+      const now = performance.now();
+      if (now < (btn._debounce || 0)) return;
+      btn._debounce = now + 40;
+      action();
+    };
+    btn.addEventListener('pointerdown', (e) => {
+      if (btn.disabled) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      activePointer = e.pointerId;
+      btn.classList.add('is-down');
+      try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    btn.addEventListener('pointerup', (e) => {
+      if (e.pointerId !== activePointer) return;
+      activePointer = null;
+      btn.classList.remove('is-down');
+      ignoreClickUntil = performance.now() + 500;
+      e.preventDefault();
+      e.stopPropagation();
+      fire();
+    });
+    btn.addEventListener('pointercancel', (e) => {
+      if (e.pointerId === activePointer) activePointer = null;
+      btn.classList.remove('is-down');
+    });
+    btn.addEventListener('click', (e) => {
+      if (performance.now() < ignoreClickUntil) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      e.preventDefault();
+      fire();
+    });
+  }
+
+  function renderKeypad(lane, box) {
+    const readout = document.createElement('div');
+    readout.className = 'keypad-readout empty';
+    readout.dataset.readout = '1';
+    readout.textContent = '輸入答案';
+    box.appendChild(readout);
+
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'];
+    keys.forEach((k) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'key-btn' + (k === 'ok' ? ' key-ok' : k === 'del' ? ' key-del' : '');
+      btn.dataset.key = k;
+      if (k === 'del') {
+        btn.textContent = '刪';
+        btn.setAttribute('aria-label', '刪除最後一個數字');
+      } else if (k === 'ok') {
+        btn.textContent = '確定';
+        btn.setAttribute('aria-label', '確定答案');
+      } else {
+        btn.textContent = k;
+        btn.setAttribute('aria-label', k);
+      }
+      bindKeyPress(btn, () => onKeypad(lane, k));
+      box.appendChild(btn);
+    });
+  }
+
   function submitAnswer(lane, value, btn) {
     if (!state.running || state.ended) return;
     if (performance.now() < lane.lockUntil) return;
@@ -1209,14 +1819,20 @@
       b.disabled = true;
       if (Number(b.textContent) === lane.question.answer) b.classList.add('correct');
     });
+    lane.el.querySelectorAll('.key-btn').forEach(b => { b.disabled = true; });
+    const readout = lane.el.querySelector('[data-readout]');
+    if (readout) {
+      readout.classList.remove('empty');
+      readout.classList.add(correct ? 'correct' : 'wrong');
+      if (!correct) readout.textContent = String(lane.question.answer);
+    }
     if (btn) btn.classList.add(correct ? 'correct' : 'wrong');
 
     if (correct) {
       bumpCombo(lane);
-      const aw = awardCorrect(lane);
+      awardCorrect(lane);
+      celebrateCombo(lane);
       lane.lockUntil = performance.now() + 850;
-      const comboBit = lane.combo >= 3 ? ` · 連擊×${lane.combo}` : '';
-      showFloatMsg(lane, `+${aw.gain} 分！${comboBit}`, 'ok');
       flashLane(lane, true);
       startAimAndFire(lane);
       setTimeout(() => {
@@ -1407,8 +2023,11 @@
 
     // Soft miss: small penalty, never eliminate the lane
     const pen = 15;
+    const prev = lane.score;
     lane.score = Math.max(0, lane.score - pen);
-    updateScoreUI(lane);
+    const delta = lane.score - prev;
+    animateScoreTo(lane, prev, lane.score);
+    if (delta !== 0) showGainPopup(lane, delta);
     showFloatMsg(lane, `逃走 −${pen}分`, 'soft');
     spawnEscapeParticles(lane, enemy.x, lane.h - 10);
   }
@@ -1925,23 +2544,123 @@
     state.ended = true;
     stopLoop();
     window.removeEventListener('resize', onResize);
+    if (state._ro) {
+      try { state._ro.disconnect(); } catch (e) {}
+      state._ro = null;
+    }
 
-    $('result-sub').textContent = reason || '睇吓邊個分數最高！';
     const ranked = [...state.lanes].sort((a, b) => b.score - a.score || b.hits - a.hits || b.maxCombo - a.maxCombo);
+    playResultsReveal(ranked, reason || '比賽完結！', () => {
+      showResultScreen(ranked, reason);
+    });
+  }
+
+  function playResultsReveal(ranked, title, done) {
+    const reveal = $('reveal-overlay');
+    if (!reveal) {
+      done();
+      return;
+    }
+    reveal.innerHTML = '';
+    const heading = document.createElement('div');
+    heading.className = 'reveal-title';
+    heading.textContent = title;
+    reveal.appendChild(heading);
+
+    const row = document.createElement('div');
+    row.className = 'reveal-row';
+    const places = ['冠軍', '亞軍', '季軍'];
+    ranked.forEach((p, i) => {
+      const card = document.createElement('div');
+      card.className = 'reveal-card' + (i === 0 ? ' winner' : '');
+      card.style.animationDelay = (0.12 + i * 0.16) + 's';
+      card.style.borderColor = i === 0 ? '#ffd166' : p.color;
+      const rank = document.createElement('div');
+      rank.className = 'reveal-rank';
+      rank.textContent = places[i] || String(i + 1);
+      const name = document.createElement('div');
+      name.className = 'reveal-name';
+      name.textContent = p.name;
+      const score = document.createElement('div');
+      score.className = 'reveal-score';
+      score.dataset.final = String(p.score);
+      score.textContent = '0';
+      card.appendChild(rank);
+      card.appendChild(name);
+      card.appendChild(score);
+      row.appendChild(card);
+    });
+    reveal.appendChild(row);
+    reveal.classList.remove('hidden');
+
+    const t0 = performance.now();
+    const dur = 900;
+    const tick = (now) => {
+      const t = Math.min(1, (now - t0 - 280) / dur);
+      const eased = t <= 0 ? 0 : 1 - Math.pow(1 - Math.min(1, t), 3);
+      reveal.querySelectorAll('.reveal-score').forEach((el) => {
+        const fin = Number(el.dataset.final) || 0;
+        el.textContent = String(Math.round(fin * eased));
+      });
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+
+    clearTimeout(state._revealTimer);
+    state._revealTimer = setTimeout(() => {
+      reveal.classList.add('hidden');
+      reveal.innerHTML = '';
+      done();
+    }, 2800);
+  }
+
+  function showResultScreen(ranked, reason) {
+    $('result-sub').textContent = (reason || '睇吓邊個分數最高！') + ' · ' + answerModeLabel();
     const podium = $('podium');
     podium.innerHTML = '';
     const medals = ['🥇', '🥈', '🥉'];
     ranked.forEach((p, i) => {
       const el = document.createElement('div');
-      el.className = 'podium-item' + (i === 0 ? ' gold' : '');
-      el.innerHTML = `
-        <div class="rank">${medals[i] || i + 1}</div>
-        <div class="pname">${escapeHtml(p.name)}</div>
-        <div class="pscore">${p.score} 分 · 答對 ${p.hits} · 最高連擊 ${p.maxCombo}</div>
-      `;
+      el.className = 'podium-item place-' + (i + 1) + (i === 0 ? ' gold' : '');
+      const rank = document.createElement('div');
+      rank.className = 'rank';
+      rank.textContent = medals[i] || String(i + 1);
+      const name = document.createElement('div');
+      name.className = 'pname';
+      name.textContent = p.name;
+      if (i === 0) {
+        const tag = document.createElement('span');
+        tag.className = 'winner-tag';
+        tag.textContent = '冠軍';
+        name.appendChild(document.createTextNode(' '));
+        name.appendChild(tag);
+      }
+      const score = document.createElement('div');
+      score.className = 'pscore';
+      const num = document.createElement('span');
+      num.className = 'pscore-num';
+      num.dataset.final = String(p.score);
+      num.textContent = '0';
+      score.appendChild(num);
+      score.appendChild(document.createTextNode(` 分 · 答對 ${p.hits} · 最高連擊 ${p.maxCombo}`));
+      el.appendChild(rank);
+      el.appendChild(name);
+      el.appendChild(score);
       podium.appendChild(el);
     });
     showScreen('result');
+    const t0 = performance.now();
+    const dur = 700;
+    const tick = (now) => {
+      const t = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - t, 3);
+      podium.querySelectorAll('.pscore-num').forEach((node) => {
+        const fin = Number(node.dataset.final) || 0;
+        node.textContent = String(Math.round(fin * eased));
+      });
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
     if (ranked[0] && ranked[0].score > 0) spawnConfetti();
   }
 
